@@ -76,7 +76,7 @@ class LegacyReportData(object):
 
         """
         if not self.salt:
-            self.salt = get_random_string()
+            self.salt = get_random_string(12)
         self.encrypted = _legacy_encrypt_report(
             salt=self.salt, key=key, report_text=report_text
         )
@@ -101,7 +101,7 @@ class LegacyMatchReportData(object):
           key (str): the secret key
 
         """
-        self.salt = get_random_string()
+        self.salt = get_random_string(12)
         self.encrypted = security.pepper(
             _legacy_encrypt_report(salt=self.salt, key=key, report_text=report_text)
         )

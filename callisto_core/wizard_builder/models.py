@@ -41,11 +41,11 @@ class Page(models.Model):
 
     def set_page_position(self):
         """
-            Page.position defaults to 0, but we take 0 to mean "not set"
-            so when there are no pages, Page.position is set to 1
+        Page.position defaults to 0, but we take 0 to mean "not set"
+        so when there are no pages, Page.position is set to 1
 
-            otherwise we set Page.position to the position of the latest
-            object that isn't self, +1
+        otherwise we set Page.position to the position of the latest
+        object that isn't self, +1
         """
         cls = self.__class__
         if cls.objects.count() == 0:

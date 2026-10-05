@@ -3,8 +3,8 @@ from django.conf import settings
 
 class TempSiteID:
     """
-        with TempSiteID(1):
-            ...
+    with TempSiteID(1):
+        ...
     """
 
     def __init__(self, site_id):

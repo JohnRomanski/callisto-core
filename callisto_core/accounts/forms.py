@@ -59,20 +59,17 @@ class LoginForm(AuthenticationForm):
 
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
-        # current_site_id = self.request.site.id
-        # if user.account.site_id is not current_site_id:
-        #     error_msg = "user site_id not matching in login request"
-        #     # XXX (lojikil//Stefan Trail of Bits) removing some indirection
-        #     # here and just making this an error; a normal user will probably
-        #     # rarely have mismatching site_ids, but it's a common pattern for
-        #     # attackers, so we should just accept the warning here (and alert
-        #     # on it in something like an SIEM)
-        #     logger.error(error_msg)
-        #     raise ValidationError(
-        #         self.error_messages["invalid_login"],
-        #         code="invalid_login",
-        #         params={"username": self.username_field.verbose_name},
-        #     )
+        # Trail of Bits: a site_id mismatch is a common attacker pattern, so
+        # reject it and log an error that can be alerted on.
+        # Compare with != ; the original `is not` failed for site ids > 256.
+        account = getattr(user, "account", None)
+        if account is None or account.site_id != self.request.site.id:
+            logger.error("user site_id not matching in login request")
+            raise ValidationError(
+                self.error_messages["invalid_login"],
+                code="invalid_login",
+                params={"username": self.username_field.verbose_name},
+            )
 
 
 class SignUpForm(UserCreationForm):
@@ -114,21 +111,16 @@ class SignUpForm(UserCreationForm):
     email = forms.EmailField(
         required=False,
         label="Optional email",
-        help_text=mark_safe(
-            """
+        help_text=mark_safe("""
             Your email is only used to reset your password if you lose it.
-        """
-        ),
+        """),
     )
     terms = forms.BooleanField(
         required=True,
-        label=mark_safe(
-            """
+        label=mark_safe("""
             I have read and agree to Callisto\'s Terms and Privacy Policy
-        """
-        ),
-        help_text=mark_safe(
-            """
+        """),
+        help_text=mark_safe("""
             We care deeply about your privacy, and know you do too.
             Your information will remain completely private until you choose otherwise.
             Read more in Callisto's
@@ -136,8 +128,7 @@ class SignUpForm(UserCreationForm):
             Terms</a> and
             <a href="/about/our-policies/#privacy-policy" target="_blank">
             Privacy Policy</a>.
-        """
-        ),
+        """),
         error_messages={"required": TERMS_NOT_ACCEPTED_ERROR},
     )
 

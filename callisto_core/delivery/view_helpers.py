@@ -7,6 +7,7 @@ docs / reference:
     - https://github.com/project-callisto/callisto-core/blob/master/callisto_core/wizard_builder/view_helpers.py
 
 """
+
 import logging
 
 from django.urls import reverse

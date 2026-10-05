@@ -3,7 +3,6 @@ import logging
 import os
 import typing
 
-import gnupg
 import requests
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet
@@ -18,6 +17,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+from callisto_core.delivery.model_helpers import gpg_encrypt
 from callisto_core.reporting.report_delivery import (
     PDFFullReport,
     PDFMatchReport,
@@ -309,11 +309,7 @@ class CallistoCoreNotificationApi(object):
         self.context.update({"attachment": attachment})
 
     def _encrypt_file(self, file_data, public_key):
-        gpg = gnupg.GPG()
-        imported_keys = gpg.import_keys(public_key)
-        return gpg.encrypt(
-            file_data, imported_keys.fingerprints[0], armor=True, always_trust=True
-        ).data
+        return gpg_encrypt(file_data, public_key)
 
     # send cycle
 

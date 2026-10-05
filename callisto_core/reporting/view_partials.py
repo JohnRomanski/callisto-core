@@ -20,6 +20,7 @@ and should not define:
     - url names
 
 """
+
 from django.contrib.auth.views import PasswordResetView
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
@@ -111,9 +112,7 @@ class SchoolEmailFormPartial(_SubmissionPartial, CallistoPasswordResetView):
 
     @property
     def student_confirmation_url(self):
-        uidb64 = urlsafe_base64_encode(force_bytes(self.request.user.pk)).decode(
-            "utf-8"
-        )
+        uidb64 = urlsafe_base64_encode(force_bytes(self.request.user.pk))
         token = self.token_generator.make_token(self.request.user)
         return reverse(
             self.request.resolver_match.view_name,

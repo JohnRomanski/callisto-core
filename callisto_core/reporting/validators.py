@@ -1,7 +1,7 @@
 import logging
 import re
 
-from six.moves.urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 def _clean_url(url):
-    url_field = URLField()
+    # keep http so normalized identifiers stay stable for matching
+    url_field = URLField(assume_scheme="http")
     return url_field.clean(url.strip())
 
 
@@ -40,8 +41,10 @@ def phone_validation_function(value):
 
 
 def instagram_validation_function(value):
-    instagram_re = "https?:\/\/(www\.)?instagram\.com\/\
-([A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,28}(?:[A-Za-z0-9_]))?)"
+    instagram_re = (
+        r"https?:\/\/(www\.)?instagram\.com\/"
+        r"([A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,28}(?:[A-Za-z0-9_]))?)"
+    )
     instagram_url = re.match(instagram_re, value)
     if instagram_url:
         instagram_url = instagram_url.group(0)

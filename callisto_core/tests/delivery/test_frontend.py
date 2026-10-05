@@ -3,13 +3,14 @@ import os
 import time
 import unittest
 from datetime import datetime
-from distutils.util import strtobool
 from unittest import skip
 from urllib.parse import urlparse
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
+
+from callisto_core.utils.tenant_api import strtobool
 from selenium.webdriver.support.wait import WebDriverWait
 
 from django.contrib.auth import get_user_model
@@ -62,24 +63,16 @@ class AssertionsMixin(object):
     def assertSelectorContains(self, css, text):
         element_text = self._getElements(css, text)
         if not self._selectorContains(text, element_text):
-            raise AssertionError(
-                """
+            raise AssertionError("""
                 '{}' not found in '{}'
-            """.format(
-                    text, element_text
-                )
-            )
+            """.format(text, element_text))
 
     def assertSelectorNotContains(self, css, text):
         element_text = self._getElements(css, text)
         if self._selectorContains(text, element_text):
-            raise AssertionError(
-                """
+            raise AssertionError("""
                 '{}' found in '{}'
-            """.format(
-                    text, element_text
-                )
-            )
+            """.format(text, element_text))
 
 
 class ElementHelper(wizard_builder_tests.ElementHelper, AuthMixin):

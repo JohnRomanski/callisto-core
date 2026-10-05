@@ -1,5 +1,14 @@
 from copy import copy
-from distutils.util import strtobool
+
+
+def strtobool(value: str) -> int:
+    """Replacement for distutils.util.strtobool, removed in Python 3.12"""
+    value = value.lower()
+    if value in ("y", "yes", "t", "true", "on", "1"):
+        return 1
+    elif value in ("n", "no", "f", "false", "off", "0"):
+        return 0
+    raise ValueError(f"invalid truth value {value!r}")
 
 
 def cast_string_to_type(value: str, cast: [str, bool, int]) -> [str, bool, int]:

@@ -4,6 +4,7 @@ View helpers contain functionality shared between several view partials.
 None of these classes provide full view functionality.
 
 """
+
 from django.urls import reverse
 
 

@@ -1,8 +1,8 @@
 import json
 import logging
+import tempfile
 
 import gnupg
-import six
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -21,7 +21,7 @@ class Command(BaseCommand):
             json.dump(data, data_file)
         logger.info("Decrypted eval data written to eval_data.json")
 
-    def _decrypt(self):
+    def _decrypt(self, gpg):
         decrypted_eval_data = []
         for row in EvalRow.objects.all():
             decrypted_row = {
@@ -31,15 +31,20 @@ class Command(BaseCommand):
                 "action": row.action,
                 "timestamp": row.timestamp.__str__(),
             }
-            gpg = gnupg.GPG()
-            gpg.import_keys(settings.CALLISTO_EVAL_PRIVATE_KEY)
-            decrypted_eval_row = six.text_type(gpg.decrypt(six.binary_type(row.row)))
-            if decrypted_eval_row:
-                decrypted_row.update(json.loads(decrypted_eval_row))
+            decrypted = gpg.decrypt(bytes(row.row))
+            if decrypted.ok:
+                decrypted_row.update(json.loads(str(decrypted)))
+            else:
+                logger.warning(
+                    f"could not decrypt eval row {row.pk}: {decrypted.status}"
+                )
             decrypted_eval_data.append(decrypted_row)
         return decrypted_eval_data
 
     def handle(self, *args, **kwargs):
         if not settings.CALLISTO_EVAL_PRIVATE_KEY:
             raise ImproperlyConfigured("CALLISTO_EVAL_PRIVATE_KEY not present")
-        self._write_to_file(self._decrypt())
+        with tempfile.TemporaryDirectory() as gnupghome:
+            gpg = gnupg.GPG(gnupghome=gnupghome)
+            gpg.import_keys(settings.CALLISTO_EVAL_PRIVATE_KEY)
+            self._write_to_file(self._decrypt(gpg))

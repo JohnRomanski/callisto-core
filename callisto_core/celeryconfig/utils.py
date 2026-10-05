@@ -4,4 +4,4 @@ def backoff(attempts):
     1, 2, 4, 8, 16, 32, ...
 
     """
-    return 2 ** attempts
+    return 2**attempts

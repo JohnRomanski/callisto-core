@@ -64,6 +64,20 @@ django settings.py minimum requirements
     CALLISTO_TENANT_API
 ```
 
+### Rate limiting
+
+Passphrase attempts on reports are limited by `DECRYPT_THROTTLE_RATE`
+(default `"100/m"` per user) using django-ratelimit. The limit is only
+enforced across a deployment if `CACHES` points at a cache that every
+worker shares and that supports atomic increments, such as Redis or
+Memcached. With the default local-memory cache each process keeps its own
+count. Use `RATELIMIT_USE_CACHE` to pick a cache alias other than `default`.
+
+### Logout
+
+Django's `LogoutView` only accepts POST. Log users out with a form that
+posts to the `logout` URL and includes `{% csrf_token %}`, not with a link.
+
 - GPG
 - tenant specific
 

@@ -17,4 +17,14 @@ if os.getenv("HEROKU_APP_NAME", default=""):
 else:
     HEROKU_REVIEW_APP_DOMAIN = ""
 
+# django-ratelimit needs a cache shared by every worker, or each process
+# keeps its own counter and DECRYPT_THROTTLE_RATE can be bypassed
+if os.getenv("REDIS_URL"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": os.getenv("REDIS_URL"),
+        }
+    }
+
 ALLOWED_HOSTS = [APP_URL, HEROKU_REVIEW_APP_DOMAIN]

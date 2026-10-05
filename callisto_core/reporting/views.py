@@ -11,6 +11,7 @@ views should define:
     - templates
 
 """
+
 from . import view_partials
 
 ##################

@@ -28,6 +28,7 @@ test-lint: ## check style with pep8 and isort
 
 test-suite:
 	python manage.py check
+	python manage.py makemigrations --check --dry-run
 	pytest -vls callisto_core/ --ignore=callisto_core/tests/delivery/test_frontend.py --ignore=callisto_core/wizard_builder/tests/test_frontend.py
 
 test-integrated:

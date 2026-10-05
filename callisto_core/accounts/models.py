@@ -4,6 +4,7 @@ import uuid
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils.crypto import get_random_string
 
 from callisto_core.utils.api import NotificationApi
 
@@ -44,7 +45,8 @@ class BulkAccount(models.Model):
         for email in emails:
             user, user_created = User.objects.get_or_create(username=email)
             if user_created:
-                user.set_password(User.objects.make_random_password())
+                # placeholder until the user sets one through the reset email
+                user.set_password(get_random_string(32))
                 user.save()
             User.objects.filter(id=user.id).update(email=email)
 
