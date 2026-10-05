@@ -1,9 +1,16 @@
+import json
+import threading
 from unittest import skip
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test import TransactionTestCase
 from django.utils import timezone
 
+from callisto_core.delivery.models import MatchReport, Report
+from callisto_core.reporting.api import CallistoCoreMatchingApi
+from callisto_core.reporting.report_delivery import MatchReportContent
 from callisto_core.tests.reporting.base import MatchSetup
 from callisto_core.tests.test_base import ReportPostHelper
 from callisto_core.tests.utils.api import CustomNotificationApi
@@ -77,6 +84,61 @@ class MatchAlertingTest(MatchSetup):
         self.create_match(self.user2, "test1")
         matches = self.create_match(self.user3, "test2")
         self.assertFalse(matches)
+
+
+class ConcurrentMatchingTest(TransactionTestCase):
+    # keep the sites and other migration data for the tests that run after
+    serialized_rollback = True
+
+    def setUp(self):
+        if connection.vendor != "postgresql":
+            self.skipTest("needs row-level locks (select_for_update)")
+        for username in ["concurrent1", "concurrent2"]:
+            user = User.objects.create_user(username=username, password="test")
+            report = Report(owner=user)
+            report.encrypt_record({}, "key")
+            content = MatchReportContent(
+                identifier="test1", perp_name="test1", email="a@example.com", phone="1"
+            )
+            MatchReport(report=report).encrypt_match_report(
+                json.dumps(content.__dict__), "test1"
+            )
+
+    def test_concurrent_submissions_trigger_match_once(self):
+        # hold both submissions after decryption so they reach the
+        # already-matched check at the same time
+        barrier = threading.Barrier(2, timeout=30)
+        decrypt = CallistoCoreMatchingApi._resolve_reports_decryptable_with_identifier
+
+        def decrypt_then_wait(api, match_list):
+            result = decrypt(api, match_list)
+            barrier.wait()
+            return result
+
+        results, errors = [], []
+
+        def submit():
+            try:
+                results.append(list(MatchingApi.find_matches("test1")))
+            except Exception as error:
+                errors.append(error)
+            finally:
+                connection.close()
+
+        with patch.object(
+            CallistoCoreMatchingApi,
+            "_resolve_reports_decryptable_with_identifier",
+            decrypt_then_wait,
+        ):
+            threads = [threading.Thread(target=submit) for _ in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+
+        self.assertEqual(errors, [])
+        self.assertEqual(sorted(len(matches) for matches in results), [0, 2])
+        self.assertTrue(all(Report.objects.values_list("match_found", flat=True)))
 
 
 @skip("disabled for 2019 summer maintenance - record creation is no longer supported")
