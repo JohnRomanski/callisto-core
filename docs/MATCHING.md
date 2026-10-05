@@ -21,16 +21,27 @@ normalized by `reporting/validators.py`):
    reports are locked (`select_for_update`), already-matched ones are dropped,
    and the rest are marked `match_found` and delivered to the school.
 
-### Properties this gives
+### Properties this gives, and doesn't
 
 - Nothing stored is deterministic in the identifier: there is no index to
   join on, and each record has its own salt.
-- With the database alone, an attacker learns nothing (the pepper is not in
-  the database).
+- With the database alone, an attacker cannot read identifiers or match
+  report bodies, because those are also encrypted with the pepper, which is
+  not in the database. **The database still exposes reporter metadata in
+  clear:** each match report links to its `Report`, whose owner, creation
+  and submission timestamps, `match_found` flag and contact fields
+  (`contact_email`, `contact_phone`, `contact_name`, `contact_notes`) are
+  not encrypted.
 - With the database **and** the pepper, testing a guessed identifier against
   one record costs one Argon2id derivation, per record.
-- Neither the school nor Callisto can read a match report until a second,
-  independent reporter supplies the same identifier.
+- **The server can read any report it handles.** The identifier and report
+  text reach the application in plaintext at submission and are encrypted
+  server side, and with the pepper the server can run `get_match` for any
+  identifier against every record. Requiring two distinct reporters before
+  anything is delivered to the school is a **delivery policy enforced by the
+  application**, not a cryptographic guarantee against Callisto or anyone
+  who controls the server. Only a client-side design (option C) changes
+  this.
 
 ### Cost
 
@@ -58,6 +69,14 @@ reporter's submission is saved, instead of running them in the request.
   happen seconds to minutes later.
 - Still O(n) work per submission. It moves the problem out of the request;
   it doesn't solve it. Concurrent matching is already safe (#4).
+- **Needs retry-safe notifications first.** `find_matches` commits
+  `match_found` before any notification is sent, and later runs skip
+  already-matched reports. If the process dies in between, the match's
+  notifications are lost for good. That is already true in the request path
+  today; a retried worker task would make it worse by never re-sending.
+  Record each match as a durable event (an outbox row written in the same
+  transaction that sets `match_found`), and have the worker send from the
+  outbox idempotently, marking each notification sent.
 - Tasks must carry the identifier, which is sensitive. The task argument
   should be encrypted to a worker key, or the identifier stored encrypted
   and referenced by id, so it never sits in the broker in clear.
@@ -85,8 +104,10 @@ candidates by it, so each submission decrypts only real candidates.
 
 Callisto's research design (Rajan, Qin, Archer, Boneh, Lepoint, Varia,
 "Callisto: A Cryptographic Approach to Detecting Serial Perpetrators of
-Sexual Misconduct", ACM COMPASS 2018), with reference code in
-[project-callisto/crypto-demo](https://github.com/project-callisto/crypto-demo).
+Sexual Misconduct", ACM COMPASS 2018).
+[project-callisto/crypto-demo](https://github.com/project-callisto/crypto-demo)
+illustrates selected components of it; per its README it is not a complete
+implementation, so a real implementation must be built from the paper.
 In outline (check the paper for the exact construction):
 
 - The reporter's browser computes a deterministic index for the identifier
@@ -120,7 +141,8 @@ A possible middle ground, but it still needs review of the leakage.
 
 ## Recommendation
 
-1. Implement **A** now (no cryptographic change).
+1. Implement **A** now (no cryptographic change), together with a durable
+   match outbox so notifications survive crashes and retries.
 2. Treat Argon2id cost as a matching-latency knob until A ships: lowering
    `ARGON2ID_*` speeds matching for new records at the cost of guessing
    resistance.
