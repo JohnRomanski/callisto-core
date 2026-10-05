@@ -16,7 +16,7 @@ def no_outbound_email(monkeypatch):
         sent.append((url, kwargs))
         return SimpleNamespace(status_code=200, content=b"")
 
-    monkeypatch.setattr("callisto_core.notification.api.requests.post", fake_post)
+    # email goes out only through notification.tasks
     monkeypatch.setattr("callisto_core.notification.tasks.requests.post", fake_post)
     return sent
 

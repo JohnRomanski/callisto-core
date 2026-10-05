@@ -50,4 +50,12 @@ if os.getenv("REDIS_URL"):
         }
     }
 
+# with a broker, email is sent by a Celery worker
+# (`celery -A callisto_core.celeryconfig.celery worker`) instead of inside the
+# request. Messages carry recipients, bodies and account links, so use a
+# private broker over TLS (rediss:// or amqps://).
+if os.getenv("CELERY_BROKER_URL"):
+    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+    CELERY_TASK_ALWAYS_EAGER = False
+
 ALLOWED_HOSTS = [APP_URL, HEROKU_REVIEW_APP_DOMAIN]

@@ -2,7 +2,6 @@ import copy
 import logging
 import os
 
-import requests
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
@@ -17,6 +16,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from callisto_core.delivery.model_helpers import gpg_encrypt
+from callisto_core.notification import tasks
 from callisto_core.reporting.report_delivery import (
     PDFFullReport,
     PDFMatchReport,
@@ -341,14 +341,6 @@ class CallistoCoreNotificationApi:
         """for tests"""
         return {}
 
-    def _mail_attachments(self):
-        files = {"files": []}
-        if self.context.get("attachment"):
-            file_name = self.context["attachment"][0]
-            file_data = self.context["attachment"][1]
-            files["files"].append(("attachment", (file_name, file_data)))
-        return files
-
     def set_protocol(self):
         if not self.context.get("protocol"):
             protocol = "http" if settings.DEBUG else "https"  # TODO: not this
@@ -394,33 +386,19 @@ class CallistoCoreNotificationApi:
             )
 
     def send_email(self):
-        mailgun_post_route = (
-            "https://api.mailgun.net/v3/mail.callistocampus.org/messages"
+        """Queues the email; tasks.send_email delivers it through Mailgun"""
+        attachments = []
+        if self.context.get("attachment"):
+            file_name, file_data, *_ = self.context["attachment"]
+            attachments.append((file_name, file_data))
+        message = tasks.build_message(
+            to=self.context["to_addresses"],
+            subject=self.context["subject"],
+            html=self.context["body"],
+            extra=self._extra_data(),
+            attachments=attachments,
         )
-        request_params = {
-            "auth": ("api", settings.MAILGUN_API_KEY),
-            "data": {
-                "from": '"Callisto" <noreply@mail.callistocampus.org>',
-                "to": self.context["to_addresses"],
-                "subject": self.context["subject"],
-                "html": self.context["body"],
-                **self._extra_data(),
-            },
-            **self._mail_attachments(),
-        }
-        # [ TODO ] REMOVE THIS WHEN CELERY CONFIG IS FINISHED
-        response = requests.post(mailgun_post_route, **request_params)
-        self.context.update(
-            {
-                "response": getattr(response, "context", response),
-                "response_status": response.status_code,
-                "response_content": response.content,
-            }
-        )
-        # [ TODO ] / REMOVE THIS
-        # [ TODO ] ADD THIS BACK WHEN CELERY CONFIG IS FINISHED
-        # tasks.SendEmail.delay(mailgun_post_route, request_params)
-        # [ TODO ] / ADD THIS
+        tasks.send_email.delay(message)
 
     def log_action(self):
         logger.info(
@@ -436,8 +414,3 @@ class CallistoCoreNotificationApi:
 
         if self.context.get("body"):
             self.context.update({"body": self.context["body"][:80]})
-
-        # [ TODO ] REMOVE THIS WHEN CELERY CONFIG IS FINISHED
-        if not self.context.get("response_status") == 200:
-            logger.error(f"status_code!=200, context: {self.context}")
-        # [ TODO ] / REMOVE THIS

@@ -111,6 +111,22 @@ passphrases expire after `PASSPHRASE_SESSION_TTL` seconds without use
 The cookie is marked `Secure` when the request is HTTPS. Behind a proxy that
 terminates TLS, set `SECURE_PROXY_SSL_HEADER` so Django can tell.
 
+### Email
+
+Notifications are sent through Mailgun by the `notification.tasks.send_email`
+Celery task. Set `MAILGUN_API_KEY` (and optionally `MAILGUN_POST_ROUTE` and
+`MAILGUN_FROM`). The task reads these when it runs, so credentials never
+enter the broker, and it stores no results. In a worker, connection errors,
+429 and 5xx responses are retried with exponential backoff (5 retries). A
+delivery failure is logged, never raised.
+
+With `CELERY_TASK_ALWAYS_EAGER = True` email is sent inside the request, with
+a single attempt so an outage can't hold the request open. To send it from a
+worker, with retries, configure a broker and run
+`celery -A callisto_core.celeryconfig.celery worker`. Queued messages contain
+recipients, bodies and account activation links, so the broker must be
+private and use TLS.
+
 ### Logout
 
 Django's `LogoutView` only accepts POST. Log users out with a form that

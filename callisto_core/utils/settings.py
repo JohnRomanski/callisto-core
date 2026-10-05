@@ -143,11 +143,12 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", default="INFO")},
 }
 
-# Configs for celery testing
+# Celery: tasks (email) run inside the request here; settings_live hands
+# them to a worker when CELERY_BROKER_URL is set
 CELERY_TASK_SERIALIZER = "json"
-CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+CELERY_ACCEPT_CONTENT = ["json"]  # never unpickle broker messages
+CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_TASK_ALWAYS_EAGER = True
-CELERY_BROKER_BACKEND = "memory"
 CELERY_BROKER_URL = "memory://"
 
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY", default="")
