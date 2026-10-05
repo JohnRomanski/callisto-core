@@ -92,7 +92,11 @@ class SignUpForm(UserCreationForm):
         max_length=settings.PASSWORD_MAX_LENGTH,
         label="Password",
         widget=PasswordInput(
-            attrs={"class": "show-requirements", "data-requirement": "password", "autocomplete": "off"}
+            attrs={
+                "class": "show-requirements",
+                "data-requirement": "password",
+                "autocomplete": "off",
+            }
         ),
         error_messages={"required": REQUIRED_ERROR.format("password")},
     )
