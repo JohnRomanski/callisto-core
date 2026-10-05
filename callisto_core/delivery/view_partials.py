@@ -22,6 +22,7 @@ and should not define:
 
 """
 
+import functools
 import logging
 import re
 
@@ -30,6 +31,7 @@ from nacl.exceptions import CryptoError
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
@@ -37,11 +39,13 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import generic as views
 
 from callisto_core.evaluation.view_partials import EvalDataMixin
+from callisto_core.reporting import report_delivery
 from callisto_core.wizard_builder import (
+    data_helper,
     view_partials as wizard_builder_partials,
 )
 
-from . import forms, models, view_helpers
+from . import forms, models, passphrase_storage, view_helpers
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +55,22 @@ logger = logging.getLogger(__name__)
 #######################
 
 
-class _PassphrasePartial(views.base.TemplateView):
+class PassphraseCookieMixin:
+    """Sends the cookie that unlocks passphrases kept in the session"""
+
+    @classmethod
+    def as_view(cls, **initkwargs):
+        view = super().as_view(**initkwargs)
+
+        @functools.wraps(view)
+        def view_with_cookie(request, *args, **kwargs):
+            response = view(request, *args, **kwargs)
+            return passphrase_storage.set_cookie(request, response)
+
+        return view_with_cookie
+
+
+class _PassphrasePartial(PassphraseCookieMixin, views.base.TemplateView):
     storage_helper = view_helpers.ReportStorageHelper
 
     @property
@@ -74,7 +93,9 @@ class DashboardPartial(_PassphraseClearingPartial):
 ###################
 
 
-class ReportBasePartial(EvalDataMixin, wizard_builder_partials.WizardFormPartial):
+class ReportBasePartial(
+    PassphraseCookieMixin, EvalDataMixin, wizard_builder_partials.WizardFormPartial
+):
     model = models.Report
     storage_helper = view_helpers.EncryptedReportStorageHelper
     EVAL_ACTION_TYPE = "VIEW"
@@ -132,12 +153,10 @@ class _ReportAccessPartial(_ReportLimitedDetailPartial):
 
     @property
     def access_granted(self):
+        # a passphrase posted with the request goes through access_form_valid,
+        # which validates it and keeps it in the session
         self._check_report_owner()
-        try:
-            passphrase = self.request.POST["key"]
-        except Exception:
-            return False
-
+        passphrase = self.storage.passphrase
         if passphrase:
             try:
                 self.storage.report.decrypt_record(passphrase)
@@ -260,9 +279,23 @@ class WizardPDFPartial(_ReportActionPartial):
     EVAL_ACTION_TYPE = "ACCESS_PDF"
 
     def form_valid(self, form):
-        # remove the old PDF generator completely.
-        # this should be generated via JS now.
-        pass
+        super().form_valid(form)
+        response = HttpResponse(content_type="application/pdf")
+        response["Content-Disposition"] = (
+            self.content_disposition + '; filename="record.pdf"'
+        )
+
+        data = self.report.decrypt_record(
+            self.request.POST.get("key") or self.storage.passphrase
+        )
+        data = data_helper.SerializedDataHelper.get_zipped_data(
+            data["data"], data["wizard_form_serialized"]
+        )
+
+        response.write(
+            report_delivery.report_as_pdf(report=self.report, data=data, recipient=None)
+        )
+        return response
 
 
 class ViewPDFPartial(WizardPDFPartial):

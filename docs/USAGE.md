@@ -73,6 +73,19 @@ worker shares and that supports atomic increments, such as Redis or
 Memcached. With the default local-memory cache each process keeps its own
 count. Use `RATELIMIT_USE_CACHE` to pick a cache alias other than `default`.
 
+### Passphrase storage
+
+While someone fills in a report, the wizard needs their passphrase on every
+step. callisto-core keeps it in the session **encrypted** with a random
+per-browser key that is stored only in the `callisto_passphrase_key` cookie
+(HttpOnly, SameSite=Strict, cleared when the browser closes). The session
+store, usually the database, never holds a readable passphrase. Stored
+passphrases expire after `PASSPHRASE_SESSION_TTL` seconds without use
+(default 1800) and are removed on logout and when the dashboard loads.
+
+The cookie is marked `Secure` when the request is HTTPS. Behind a proxy that
+terminates TLS, set `SECURE_PROXY_SSL_HEADER` so Django can tell.
+
 ### Logout
 
 Django's `LogoutView` only accepts POST. Log users out with a form that

@@ -53,10 +53,14 @@ class ReportBaseForm(
     NoRequiredLabelMixin, FormViewExtensionMixin, forms.models.ModelForm
 ):
     key = fields.PassphraseField(label="Passphrase")
-    token = forms.CharField(widget=forms.HiddenInput())
-    uuid = forms.CharField(widget=forms.HiddenInput())
+    # rendered for client-side use of the Callisto API; the server never reads
+    # them back, so posts that leave them out (report actions) are still valid
+    token = forms.CharField(widget=forms.HiddenInput(), required=False)
+    uuid = forms.CharField(widget=forms.HiddenInput(), required=False)
     endpoint = forms.CharField(
-        widget=forms.HiddenInput(), initial=settings.CALLISTO_API_ENDPOINT
+        widget=forms.HiddenInput(),
+        initial=settings.CALLISTO_API_ENDPOINT,
+        required=False,
     )
 
     def __init__(self, *args, **kwargs):
@@ -71,7 +75,7 @@ class ReportBaseForm(
     def save(self, *args, **kwargs):
         report = super().save(*args, **kwargs)
         if self.data.get("key"):
-            self.view.request.passphrase = self.data.get("key")
+            self.view.storage.set_passphrase(self.data["key"], report=report)
         return report
 
     class Meta:
