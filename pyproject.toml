@@ -28,7 +28,6 @@ dependencies = [
     "django-polymorphic>=4.0",
     "django-ratelimit>=4.1",
     "django-widget-tweaks>=1.5",
-    "pyseto>=1.8",
     "pynacl>=1.5",
     "python-gnupg>=0.5.4",
     "reportlab>=4.2",

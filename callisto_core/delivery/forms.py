@@ -1,12 +1,8 @@
-import json
 import logging
-import os
 
-import pyseto
 from nacl.exceptions import CryptoError
 
 from django import forms
-from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from callisto_core.utils.forms import NoRequiredLabelMixin
@@ -27,18 +23,6 @@ def passphrase_field(label):
     )
 
 
-def _generate_token(form):
-    # PASETO_PRIVATE_KEY is a libsodium Ed25519 secret key: 32-byte seed + public key
-    seed = bytes.fromhex(os.environ["PASETO_PRIVATE_KEY"])[:32]
-    key = pyseto.Key.from_asymmetric_key_params(version=2, d=seed)
-    claims = {
-        "user": str(form.view.request.user.account.uuid),
-        "partner": settings.DATABASES["default"]["SCHEMA"],
-    }
-    token = pyseto.encode(key, claims, serializer=json, exp=300)
-    return token.decode("utf-8")
-
-
 class FormViewExtensionMixin:
     def __init__(self, *args, **kwargs):
         self.view = kwargs.pop("view")  # TODO: pass in something more specific
@@ -53,20 +37,6 @@ class ReportBaseForm(
     NoRequiredLabelMixin, FormViewExtensionMixin, forms.models.ModelForm
 ):
     key = fields.PassphraseField(label="Passphrase")
-    # rendered for client-side use of the Callisto API; the server never reads
-    # them back, so posts that leave them out (report actions) are still valid
-    token = forms.CharField(widget=forms.HiddenInput(), required=False)
-    uuid = forms.CharField(widget=forms.HiddenInput(), required=False)
-    endpoint = forms.CharField(
-        widget=forms.HiddenInput(),
-        initial=settings.CALLISTO_API_ENDPOINT,
-        required=False,
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.initial["token"] = _generate_token(self)
-        self.initial["uuid"] = str(self.instance.uuid)
 
     @property
     def report(self):

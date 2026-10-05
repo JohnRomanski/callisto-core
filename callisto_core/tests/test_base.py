@@ -66,16 +66,9 @@ class ReportPostHelper:
         return response
 
     def client_post_report_creation(self):
-        form = self.client_get_report_creation().context["form"]
+        self.client_get_report_creation()
         url = reverse("report_new")
-        data = {
-            "key": self.passphrase,
-            "key_confirmation": self.passphrase,
-            # hidden fields the browser submits with the rendered form
-            "token": form.initial["token"],
-            "uuid": form.initial["uuid"],
-            "endpoint": form["endpoint"].value(),
-        }
+        data = {"key": self.passphrase, "key_confirmation": self.passphrase}
         response = self.client.post(url, data, follow=True)
         self.report = response.context["report"]
         self.assertIn(response.status_code, self.valid_statuses)
