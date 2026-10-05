@@ -71,7 +71,14 @@ def make_key(encode_prefix, key, salt):
     if encode_prefix and hasher.algorithm == "pbkdf2_sha256":
         iterations = encode_prefix.split("$")[1]
 
-    encoded = hasher.encode(key, salt, iterations=iterations)
+    params = None
+    if encode_prefix and hasattr(hasher, "params_from_prefix"):
+        # re-derive with the parameters the record was created with; the
+        # current settings only apply to newly encrypted records
+        params = hasher.params_from_prefix(encode_prefix)
+
+    extra = {"params": params} if params else {}
+    encoded = hasher.encode(key, salt, iterations=iterations, **extra)
     if hasher.algorithm == "pbkdf2_sha256" and hasher.must_update(encode_prefix):
         hasher.harden_runtime(key, encoded)
 
@@ -117,23 +124,40 @@ class Argon2KeyHasher(BasePasswordHasher):
     algorithm = "argon2"
     library = "argon2"
 
+    type = argon2.low_level.Type.I
+
     time_cost = settings.ARGON2_TIME_COST
     memory_cost = settings.ARGON2_MEM_COST
     parallelism = settings.ARGON2_PARALLELISM
 
+    def current_params(self):
+        return {
+            "time_cost": self.time_cost,
+            "memory_cost": self.memory_cost,
+            "parallelism": self.parallelism,
+        }
+
+    def params_from_prefix(self, encode_prefix):
+        """Reads m/t/p from a prefix like argon2$argon2i$v=19$m=512,t=2,p=2$salt"""
+        raw = next(bit for bit in encode_prefix.split("$") if bit.startswith("m="))
+        values = dict(item.split("=", 1) for item in raw.split(","))
+        return {
+            "memory_cost": int(values["m"]),
+            "time_cost": int(values["t"]),
+            "parallelism": int(values["p"]),
+        }
+
     # accept **kwargs to allow a single encode statement across different
     # hashers
-    def encode(self, key, salt, **kwargs):
+    def encode(self, key, salt, params=None, **kwargs):
         assert key is not None
         assert salt and "$" not in salt
         data = argon2.low_level.hash_secret(
             force_bytes(key),
             force_bytes(salt),
-            time_cost=self.time_cost,
-            memory_cost=self.memory_cost,
-            parallelism=self.parallelism,
             hash_len=32,
-            type=argon2.low_level.Type.I,
+            type=self.type,
+            **(params or self.current_params()),
         )
         return self.algorithm + data.decode("utf-8")
 
@@ -142,7 +166,7 @@ class Argon2KeyHasher(BasePasswordHasher):
         assert algorithm == self.algorithm
         try:
             return argon2.low_level.verify_secret(
-                force_bytes("$" + rest), force_bytes(key), type=argon2.low_level.Type.I
+                force_bytes("$" + rest), force_bytes(key), type=self.type
             )
         except argon2.exceptions.VerificationError:
             return False
@@ -227,3 +251,29 @@ class Argon2KeyHasher(BasePasswordHasher):
             salt,
             data,
         )
+
+
+class Argon2idKeyHasher(Argon2KeyHasher):
+    """
+    Key stretching using Argon2id, the variant recommended for new hashes.
+
+    Parameters come from ARGON2ID_TIME_COST, ARGON2ID_MEMORY_COST (KiB) and
+    ARGON2ID_PARALLELISM, read when a key is created. The defaults are the
+    OWASP minimum. Matching derives a key for every stored match report on
+    each submission, so higher costs make matching proportionally slower.
+    """
+
+    algorithm = "argon2id"
+    type = argon2.low_level.Type.ID
+
+    @property
+    def time_cost(self):
+        return getattr(settings, "ARGON2ID_TIME_COST", 2)
+
+    @property
+    def memory_cost(self):
+        return getattr(settings, "ARGON2ID_MEMORY_COST", 19 * 1024)
+
+    @property
+    def parallelism(self):
+        return getattr(settings, "ARGON2ID_PARALLELISM", 1)

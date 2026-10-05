@@ -27,7 +27,9 @@ CALLISTO_MATCHING_API = "callisto_core.tests.utils.api.CustomMatchingApi"
 CALLISTO_NOTIFICATION_API = "callisto_core.tests.utils.api.CustomNotificationApi"
 CALLISTO_TENANT_API = "callisto_core.tests.utils.api.CustomTenantApi"
 
+# the first hasher encrypts new records; the others decrypt older records
 KEY_HASHERS = [
+    "callisto_core.delivery.hashers.Argon2idKeyHasher",
     "callisto_core.delivery.hashers.Argon2KeyHasher",
     "callisto_core.delivery.hashers.PBKDF2KeyHasher",
 ]
@@ -77,6 +79,10 @@ ORIGINAL_KEY_ITERATIONS = 100000
 ARGON2_TIME_COST = 2
 ARGON2_MEM_COST = 512
 ARGON2_PARALLELISM = 2
+# Argon2id, used for new records (OWASP minimum: 19 MiB, 2 passes)
+ARGON2ID_MEMORY_COST = 19 * 1024
+ARGON2ID_TIME_COST = 2
+ARGON2ID_PARALLELISM = 1
 PEPPER = os.urandom(32)
 DECRYPT_THROTTLE_RATE = "100/m"
 PASSWORD_MINIMUM_ENTROPY = 35

@@ -26,3 +26,10 @@ def no_outbound_email(monkeypatch):
     monkeypatch.setattr("callisto_core.notification.api.requests.post", fake_post)
     monkeypatch.setattr("callisto_core.notification.tasks.requests.post", fake_post)
     return sent
+
+
+@pytest.fixture(autouse=True)
+def cheap_argon2id(settings):
+    """Real Argon2id, with a small cost so the suite stays fast."""
+    settings.ARGON2ID_MEMORY_COST = 1024
+    settings.ARGON2ID_TIME_COST = 1
