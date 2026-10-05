@@ -49,11 +49,21 @@ django settings.py minimum requirements
         'django.middleware.security.SecurityMiddleware',
     ]
 
-    # encryption handling
+    # encryption handling: the first hasher encrypts new records, the
+    # others are needed to decrypt records created before it
     KEY_HASHERS = [
+        "callisto_core.delivery.hashers.Argon2idKeyHasher",
         "callisto_core.delivery.hashers.Argon2KeyHasher",
-        "callisto_core.delivery.hashers.PBKDF2KeyHasher"
+        "callisto_core.delivery.hashers.PBKDF2KeyHasher",
     ]
+    ARGON2ID_MEMORY_COST = 19 * 1024  # KiB, OWASP minimum
+    ARGON2ID_TIME_COST = 2
+    ARGON2ID_PARALLELISM = 1
+
+    # secrets: load from the environment, never change them
+    SECRET_KEY
+    PEPPER  # 32 bytes, identical in every process
+    INDEXING_KEY
 
     CALLISTO_EVAL_PUBLIC_KEY
     CALLISTO_EVAL_PRIVATE_KEY (keep this one secret!)
@@ -63,6 +73,20 @@ django settings.py minimum requirements
     CALLISTO_NOTIFICATION_API
     CALLISTO_TENANT_API
 ```
+
+### Key stretching and secrets
+
+Records store the hashing parameters they were created with, so raising the
+`ARGON2ID_*` costs only affects new records; existing reports and match
+reports keep decrypting, and reports move to the current parameters the next
+time they are saved. Matching derives a key for every stored match report on
+each submission, so higher costs make matching proportionally slower.
+
+`PEPPER` encrypts every match report a second time. It must be 32 bytes, the
+same in every process, and never change, or existing match reports become
+unreadable. Run `python manage.py check --deploy`: callisto-core reports a
+demo `SECRET_KEY` (`callisto.E001`), a placeholder `INDEXING_KEY`
+(`callisto.E002`) and a malformed `PEPPER` (`callisto.E003`).
 
 ### Rate limiting
 
