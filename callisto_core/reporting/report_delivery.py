@@ -28,8 +28,8 @@ def report_as_pdf(report, data, recipient):
 
 class MatchReportContent(object):
     """
-        Class to structure contact information collected
-        from match submission form for report
+    Class to structure contact information collected
+    from match submission form for report
     """
 
     # This constructor is called with keyword arguments populated by
@@ -266,7 +266,7 @@ class ReportPageMixin(object):
 class MatchPageMixin(object):
     def match_pages(self, match_report_and_report_content: list):
         pages = []
-        for (match_report, match_content) in match_report_and_report_content:
+        for match_report, match_content in match_report_and_report_content:
             pages.extend(self.match_page(match_report, match_content))
             pages.append(PageBreak())
         return pages

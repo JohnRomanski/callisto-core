@@ -21,6 +21,7 @@ and should not define:
     - url names
 
 """
+
 import logging
 import re
 

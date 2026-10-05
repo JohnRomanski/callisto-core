@@ -114,21 +114,16 @@ class SignUpForm(UserCreationForm):
     email = forms.EmailField(
         required=False,
         label="Optional email",
-        help_text=mark_safe(
-            """
+        help_text=mark_safe("""
             Your email is only used to reset your password if you lose it.
-        """
-        ),
+        """),
     )
     terms = forms.BooleanField(
         required=True,
-        label=mark_safe(
-            """
+        label=mark_safe("""
             I have read and agree to Callisto\'s Terms and Privacy Policy
-        """
-        ),
-        help_text=mark_safe(
-            """
+        """),
+        help_text=mark_safe("""
             We care deeply about your privacy, and know you do too.
             Your information will remain completely private until you choose otherwise.
             Read more in Callisto's
@@ -136,8 +131,7 @@ class SignUpForm(UserCreationForm):
             Terms</a> and
             <a href="/about/our-policies/#privacy-policy" target="_blank">
             Privacy Policy</a>.
-        """
-        ),
+        """),
         error_messages={"required": TERMS_NOT_ACCEPTED_ERROR},
     )
 

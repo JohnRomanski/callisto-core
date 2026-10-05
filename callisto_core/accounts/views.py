@@ -11,6 +11,7 @@ views should define:
     - templates
 
 """
+
 from django.views.generic import TemplateView
 
 from . import view_partials

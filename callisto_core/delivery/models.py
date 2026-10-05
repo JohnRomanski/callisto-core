@@ -95,7 +95,7 @@ class Report(models.Model):
         return key
 
     def save(self, *args, **kwargs):
-        """ On save, update timestamps """
+        """On save, update timestamps"""
         self.last_edited = timezone.now()
         return super().save(*args, **kwargs)
 

@@ -66,8 +66,8 @@ class UserReviewPDFTest(test_base.ReportFlowHelper):
 
     def test_output_file(self):
         """
-            for when you want to see what the file looks like
-            $ open UserReviewPDFTest.pdf
+        for when you want to see what the file looks like
+        $ open UserReviewPDFTest.pdf
         """
         self.client_post_report_creation()
         self.client_post_report_prep()
@@ -111,8 +111,8 @@ class MatchingUserReviewPDFTest(MatchSetup):
 
     def test_output_file(self):
         """
-            for when you want to see what the file looks like
-            $ open MatchingUserReviewPDFTest.pdf
+        for when you want to see what the file looks like
+        $ open MatchingUserReviewPDFTest.pdf
         """
         matching_id = "test1a08daw awd7awgd 1213123"
         self.create_match(self.user1, matching_id)

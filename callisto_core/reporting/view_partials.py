@@ -20,6 +20,7 @@ and should not define:
     - url names
 
 """
+
 from django.contrib.auth.views import PasswordResetView
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect

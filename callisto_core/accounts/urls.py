@@ -11,7 +11,9 @@ urlpatterns = [
         view=views.PasswordChangeView.as_view(),
         name="change_password",
     ),
-    re_path(r"^forgot_password/$", view=views.PasswordResetView.as_view(), name="reset"),
+    re_path(
+        r"^forgot_password/$", view=views.PasswordResetView.as_view(), name="reset"
+    ),
     re_path(
         r"^forgot_password/sent/$",
         view=views.PasswordForgetSentView.as_view(),

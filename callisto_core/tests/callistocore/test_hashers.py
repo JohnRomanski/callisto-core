@@ -70,7 +70,12 @@ class PBKDF2KeyHasherTest(TestCase):
 
     def test_encode_requires_key_and_salt(self):
         # validation is inherited from django's PBKDF2PasswordHasher
-        for key, salt in [(None, None), ("key", None), (None, "salt"), ("key", "salt$")]:
+        for key, salt in [
+            (None, None),
+            ("key", None),
+            (None, "salt"),
+            ("key", "salt$"),
+        ]:
             with self.subTest(key=key, salt=salt):
                 with self.assertRaises((TypeError, ValueError)):
                     self.hasher.encode(key, salt)
@@ -120,7 +125,12 @@ class Argon2KeyHasherTest(TestCase):
         self.hasher = hashers.Argon2KeyHasher()
 
     def test_encode_requires_key_and_salt(self):
-        for key, salt in [(None, None), ("key", None), (None, "salt"), ("key", "salt$")]:
+        for key, salt in [
+            (None, None),
+            ("key", None),
+            (None, "salt"),
+            ("key", "salt$"),
+        ]:
             with self.subTest(key=key, salt=salt):
                 with self.assertRaises(AssertionError):
                     self.hasher.encode(key, salt)

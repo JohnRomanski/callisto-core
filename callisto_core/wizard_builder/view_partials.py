@@ -15,6 +15,7 @@ and should not define:
     - url names
 
 """
+
 from django.contrib.sites.models import Site
 from django.http.response import HttpResponseRedirect
 from django.views import generic as views

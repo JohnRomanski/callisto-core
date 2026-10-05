@@ -11,6 +11,7 @@ views should define:
     - templates
 
 """
+
 from django.contrib.auth import views as auth_views
 
 from . import view_partials

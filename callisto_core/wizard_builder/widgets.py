@@ -49,7 +49,7 @@ class ConditionalField(object):
 
 class ConditionalGenerator(object):
     """
-        generates the "context" data needed to render a conditional
+    generates the "context" data needed to render a conditional
     """
 
     dropdown_var = "extra_dropdown_widget_context"
@@ -80,21 +80,21 @@ class ConditionalGenerator(object):
 
 class ConditionalSelectMixin:
     """
-        hooks into a Select widget, and adds conditionals to certain choices
+    hooks into a Select widget, and adds conditionals to certain choices
     """
 
     option_template_name = "wizard_builder/input_option_extra.html"
 
     def value_from_datadict(self, data, files, name):
         """
-            grab the querydict for use in create_option later
+        grab the querydict for use in create_option later
         """
         self.querydict = data
         return super().value_from_datadict(data, files, name)
 
     def create_option(self, *args, **kwargs):
         """
-            add the created option, our conditional field
+        add the created option, our conditional field
         """
         option = super().create_option(*args, **kwargs)
         conditional_context = ConditionalGenerator.generate_context(
@@ -106,7 +106,7 @@ class ConditionalSelectMixin:
 
 class ConditionalSelect(ConditionalSelectMixin, Select):
     """
-        A dropdown with conditional fields
+    A dropdown with conditional fields
     """
 
     pass
@@ -114,7 +114,7 @@ class ConditionalSelect(ConditionalSelectMixin, Select):
 
 class RadioConditionalSelect(ConditionalSelectMixin, RadioSelect):
     """
-        A radio button series with conditional fields
+    A radio button series with conditional fields
     """
 
     pass
@@ -122,7 +122,7 @@ class RadioConditionalSelect(ConditionalSelectMixin, RadioSelect):
 
 class CheckboxConditionalSelectMultiple(ConditionalSelectMixin, CheckboxSelectMultiple):
     """
-        A checkbox series with conditional fields
+    A checkbox series with conditional fields
     """
 
     pass

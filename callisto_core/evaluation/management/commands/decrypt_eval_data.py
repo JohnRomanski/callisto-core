@@ -35,7 +35,9 @@ class Command(BaseCommand):
             if decrypted.ok:
                 decrypted_row.update(json.loads(str(decrypted)))
             else:
-                logger.warning(f"could not decrypt eval row {row.pk}: {decrypted.status}")
+                logger.warning(
+                    f"could not decrypt eval row {row.pk}: {decrypted.status}"
+                )
             decrypted_eval_data.append(decrypted_row)
         return decrypted_eval_data
 
