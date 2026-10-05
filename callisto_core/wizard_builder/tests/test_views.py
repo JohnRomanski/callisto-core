@@ -1,5 +1,3 @@
-from unittest import skip
-
 from django.urls import reverse
 
 from callisto_core.tests import test_base
@@ -109,9 +107,10 @@ class ViewTest(test_base.ReportFlowHelper):
         form_data = response.context["form_data"]
         self.assertIn({"food options": ["sugar"]}, form_data)
 
-    @skip("WIP")
     def test_review_page_choice_extra_info(self):
-        self.client.post(self.choice_url, self.data)
+        # "vegetables" (choice 1) has an extra info field, named choice_<pk>
+        choice_data = {"question_1": ["1"], "choice_1": "beets"}
+        self.client.post(self.choice_url, choice_data)
         response = self.client.get(self.review_url)
         form_data = response.context["form_data"]
-        self.assertIn({"food options": ["sugar: beets"]}, form_data)
+        self.assertIn({"food options": ["vegetables: beets"]}, form_data)

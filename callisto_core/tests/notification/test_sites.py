@@ -1,10 +1,11 @@
-from unittest import skip
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
-from django.test import TestCase
+from django.test import override_settings
 
+from callisto_core.notification.managers import EmailNotificationQuerySet
 from callisto_core.notification.models import EmailNotification
 from callisto_core.tests.test_base import ReportFlowHelper as ReportFlowTestCase
 from callisto_core.utils.sites import TempSiteID
@@ -62,16 +63,23 @@ class SiteIDTest(ReportFlowTestCase):
             self.assertIn(notification, EmailNotification.objects.on_site())
 
 
-class SiteRequestTest(TestCase):
-    @skip("temporariy disabled")
+class SiteRequestTest(ReportFlowTestCase):
     def test_can_request_pages_without_site_id_set(self):
-        self.client_post_report_creation()
-        response = self.client_post_reporting()
-        self.assertNotEqual(response.status_code, 404)
+        # the site then comes from the request's host (CurrentSiteMiddleware)
+        with override_settings():
+            del settings.SITE_ID
+            self.client_post_report_creation()
+            self.client_post_reporting_end_step()
 
-    @skip("temporariy disabled")
-    @patch("...notification.managers.EmailNotificationQuerySet.on_site")
-    def test_site_passed_to_email_notification_manager(self, mock_on_site):
-        self.client_post_report_creation()
-        self.client_post_reporting()
-        mock_on_site.assert_called_with(self.site.id)
+    def test_site_passed_to_email_notification_manager(self):
+        with patch.object(
+            EmailNotificationQuerySet,
+            "on_site",
+            autospec=True,
+            side_effect=EmailNotificationQuerySet.on_site,
+        ) as on_site:
+            self.client_post_report_creation()
+            self.client_post_reporting_end_step()
+        site_ids = [call.args[1] for call in on_site.call_args_list]
+        self.assertTrue(site_ids)
+        self.assertEqual(set(site_ids), {self.site.id})
