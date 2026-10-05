@@ -76,10 +76,17 @@ class ReportModelTest(test_base.ReportFlowHelper):
         self.assertFalse(Report.objects.first().match_found)
 
 
+def create_report(owner, passphrase):
+    # report creation views were disabled in 2019; build reports via the model
+    report = Report(owner=owner)
+    report.encrypt_record({}, passphrase)
+    return report
+
+
 class MatchReportTest(test_base.ReportFlowHelper):
     def setUp(self):
         super().setUp()
-        self.client_post_report_creation()
+        self.report = create_report(self.user, self.passphrase)
         match_report = MatchReport(report=self.report)
         match_report.encrypt_match_report("test match report", "dummy")
         match_report.save()
@@ -131,7 +138,7 @@ class MatchReportTest(test_base.ReportFlowHelper):
 class DeleteReportTest(test_base.ReportFlowHelper):
     def setUp(self):
         super().setUp()
-        self.client_post_report_creation()
+        self.report = create_report(self.user, self.passphrase)
 
     def test_can_delete_report(self):
         self.assertEqual(Report.objects.count(), 1)

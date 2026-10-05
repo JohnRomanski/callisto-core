@@ -20,6 +20,7 @@ def load_file(path):
         data = file_data.read()
     return data
 
+
 CALLISTO_API_ENDPOINT = "callisto_core.tests.utils.api"
 CALLISTO_EVAL_PUBLIC_KEY = load_file("callisto_publickey.gpg")
 CALLISTO_MATCHING_API = "callisto_core.tests.utils.api.CustomMatchingApi"
@@ -32,7 +33,11 @@ KEY_HASHERS = [
 ]
 
 DATABASES = {
-    "default": {"ENGINE": "django.db.backends.postgresql", "NAME": "callisto-core"}
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "callisto-core",
+        "SCHEMA": "public",
+    }
 }
 
 INSTALLED_APPS = [

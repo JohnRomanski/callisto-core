@@ -1,0 +1,43 @@
+name: test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: callisto-core
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+          cache-dependency-path: callisto_core/requirements/*.txt
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y libsodium23 libpq-dev gnupg
+      - name: Install Python packages
+        run: pip install -r callisto_core/requirements/test.txt
+      - name: Lint
+        run: make test-lint
+      - name: Test
+        run: make test-suite
