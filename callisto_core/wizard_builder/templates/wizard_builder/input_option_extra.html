@@ -4,7 +4,7 @@
     from 'django/forms/widgets/input_option.html'
 {% endcomment %}
 
-{% if wrap_label %}
+{% if widget.wrap_label %}
     <label
         {% if widget.attrs.id %} for="{{ widget.attrs.id }}"{% endif %}
         class='
@@ -18,7 +18,7 @@
     >
 {% endif %}
 {% include "django/forms/widgets/input.html" %}
-{% if wrap_label %}
+{% if widget.wrap_label %}
     <p>{{ widget.label }}</p>
 
     {% comment "Optional note" %}

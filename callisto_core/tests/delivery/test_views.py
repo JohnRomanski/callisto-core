@@ -107,6 +107,23 @@ class NewReportFlowTest(test_base.ReportFlowHelper):
         self.assertIsInstance(form, forms.ReportAccessForm)
 
 
+class WizardRenderingTest(test_base.ReportFlowHelper):
+    def test_choices_render_with_labels_and_extra_info(self):
+        # the option template used a context variable Django 4 moved to
+        # widget.wrap_label, which dropped every choice label
+        self.client_post_report_creation()
+        url = reverse("report_update", kwargs={"uuid": self.report.uuid, "step": "0"})
+        html = self.client.get(url).content.decode()
+        for choice in ["vegetables", "apples", "sugar"]:
+            self.assertIn(choice, html)
+        self.assertIn('placeholder="extra information here"', html)
+
+    def test_hidden_fields_have_no_visible_labels(self):
+        html = self.client_get_report_creation().content.decode()
+        self.assertIn('name="token"', html)
+        self.assertNotIn('for="id_token"', html)
+
+
 class StoredPassphraseFlowTest(test_base.ReportFlowHelper):
     def test_answers_saved_across_steps_without_reentering_passphrase(self):
         self.client_post_report_creation()

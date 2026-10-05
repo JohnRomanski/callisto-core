@@ -2,11 +2,11 @@ import logging
 import os
 import unittest
 from datetime import datetime
-from unittest import skip
 from urllib.parse import urlparse
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -42,10 +42,10 @@ class AuthMixin:
 
 class AssertionsMixin:
     def assertCss(self, css):
-        self.assertTrue(self.browser.find_elements_by_css_selector(css))
+        self.assertTrue(self.browser.find_elements(By.CSS_SELECTOR, css))
 
     def _getElements(self, css, text):
-        elements = (list(self.browser.find_elements_by_css_selector(css)),)
+        elements = (list(self.browser.find_elements(By.CSS_SELECTOR, css)),)
         elements = elements[0]
         element_text = ""
         for element in elements:
@@ -75,30 +75,31 @@ class AssertionsMixin:
 
 class ElementHelper(wizard_builder_tests.ElementHelper, AuthMixin):
     def enter_key(self):
-        self.browser.find_element_by_css_selector('[name="key"]').send_keys(
+        self.browser.find_element(By.CSS_SELECTOR, '[name="key"]').send_keys(
             self.passphrase
         )
 
     def enter_key_confirmation(self):
-        self.browser.find_element_by_css_selector(
-            '[name="key_confirmation"]'
+        self.browser.find_element(
+            By.CSS_SELECTOR, '[name="key_confirmation"]'
         ).send_keys(self.passphrase)
 
     def submit(self):
-        self.browser.find_element_by_css_selector('[type="submit"]').click()
+        wizard_builder_tests.NavigatingElement(
+            self.browser, self.browser.find_element(By.CSS_SELECTOR, '[type="submit"]')
+        ).click()
 
     def enter_username(self):
-        self.browser.find_element_by_css_selector('[name="username"]').send_keys(
+        self.browser.find_element(By.CSS_SELECTOR, '[name="username"]').send_keys(
             self.password
         )
 
     def enter_password(self):
-        self.browser.find_element_by_css_selector('[name="password"]').send_keys(
+        self.browser.find_element(By.CSS_SELECTOR, '[name="password"]').send_keys(
             self.username
         )
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 @override_settings(DEBUG=True)
 class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase):
     fixtures = ["wizard_builder_data", "callisto_core_notification_data"]
@@ -118,10 +119,11 @@ class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase
         chrome_options = Options()
         # deactivate with `HEADED=TRUE pytest...`
         if headless_mode():
-            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-gpu")
-        cls.browser = webdriver.Chrome(chrome_options=chrome_options)
+        cls.browser = webdriver.Chrome(options=chrome_options)
+        cls.browser.implicitly_wait(2)
 
     @classmethod
     def setup_data(cls):
@@ -138,20 +140,20 @@ class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase
 
     def wait_for_until_body_loaded(self):
         WebDriverWait(self.browser, 3).until(
-            lambda driver: driver.find_element_by_tag_name("body")
+            lambda driver: driver.find_element(By.TAG_NAME, "body")
         )
 
     def setup_user(self):
         User.objects.create_user(username=self.username, password=self.password)
         self.browser.get(self.live_server_url)
         self.element.enter_username()
-        self.browser.find_element_by_css_selector('[name="password1"]').send_keys(
+        self.browser.find_element(By.CSS_SELECTOR, '[name="password1"]').send_keys(
             self.password
         )
-        self.browser.find_element_by_css_selector('[name="password2"]').send_keys(
+        self.browser.find_element(By.CSS_SELECTOR, '[name="password2"]').send_keys(
             self.password
         )
-        self.browser.find_element_by_css_selector('[name="terms"]').click()
+        self.browser.find_element(By.CSS_SELECTOR, '[name="terms"]').click()
         self.element.submit()
 
     def setup_report(self):
@@ -210,43 +212,42 @@ class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase
         return f"{SCREEN_DUMP_LOCATION}/{self.__class__.__name__}.{self._testMethodName}-window{self._windowid}-{timestamp}"
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class ExtraInfoNameClashCases(EncryptedFrontendTest):
     def setUp(self):
         # add a second extra info question on the 1st page
         Choice.objects.filter(text="sugar").update(extra_info_text="what type???")
         super().setUp()
 
-        self.browser.find_elements_by_css_selector(
-            '.extra-widget-text [type="checkbox"]'
+        self.browser.find_elements(
+            By.CSS_SELECTOR, '.extra-widget-text [type="checkbox"]'
         )[0].click()
-        self.browser.find_elements_by_css_selector(
-            '.extra-widget-text [type="checkbox"]'
+        self.browser.find_elements(
+            By.CSS_SELECTOR, '.extra-widget-text [type="checkbox"]'
         )[1].click()
         self.element.wait_for_display()
 
         self.text_input_one = "brown cinnamon"
         self.text_input_two = "white diamond"
-        self.browser.find_elements_by_css_selector('.extra-widget-text [type="text"]')[
+        self.browser.find_elements(By.CSS_SELECTOR, '.extra-widget-text [type="text"]')[
             0
         ].send_keys(self.text_input_one)
-        self.browser.find_elements_by_css_selector('.extra-widget-text [type="text"]')[
+        self.browser.find_elements(By.CSS_SELECTOR, '.extra-widget-text [type="text"]')[
             1
         ].send_keys(self.text_input_two)
 
     def test_input_one_persists(self):
         self.element.next.click()
         self.element.back.click()
-        element = self.browser.find_elements_by_css_selector(
-            '.extra-widget-text [type="text"]'
+        element = self.browser.find_elements(
+            By.CSS_SELECTOR, '.extra-widget-text [type="text"]'
         )[0]
         self.assertEqual(element.get_attribute("value"), self.text_input_one)
 
     def test_input_two_persists(self):
         self.element.next.click()
         self.element.back.click()
-        element = self.browser.find_elements_by_css_selector(
-            '.extra-widget-text [type="text"]'
+        element = self.browser.find_elements(
+            By.CSS_SELECTOR, '.extra-widget-text [type="text"]'
         )[1]
         self.assertEqual(element.get_attribute("value"), self.text_input_two)
 
@@ -263,7 +264,6 @@ class ExtraInfoNameClashCases(EncryptedFrontendTest):
         self.assertSelectorContains("body", self.text_input_two)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class WizardFrontendCases(EncryptedFrontendTest):
     def test_first_page_text(self):
         self.assertSelectorContains("form", "food options")
@@ -408,7 +408,6 @@ class WizardFrontendCases(EncryptedFrontendTest):
         self.assertSelectorContains("body", "[ Not Answered ]")
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class CallistoCoreCases(EncryptedFrontendTest):
     def test_dashboard_title(self):
         self.browser.get(self.live_server_url + reverse("dashboard"))
@@ -416,35 +415,35 @@ class CallistoCoreCases(EncryptedFrontendTest):
 
     def test_edit_sends_you_to_first_question(self):
         self.browser.get(self.live_server_url + reverse("dashboard"))
-        self.browser.find_element_by_link_text("Edit Record").click()
+        self.browser.find_element(By.LINK_TEXT, "Edit Record").click()
         self.element.enter_key()
         self.element.submit()
         self.assertSelectorContains("form", "food options")
 
     def test_can_delete_record(self):
         self.browser.get(self.live_server_url + reverse("dashboard"))
-        self.browser.find_element_by_link_text("Delete").click()
+        self.browser.find_element(By.LINK_TEXT, "Delete").click()
         self.element.enter_key()
         self.element.submit()
         self.assertSelectorContains(".dashboard", "No Reports")
 
     def test_reporting_flow_form_redirect(self):
         self.browser.get(self.live_server_url + reverse("dashboard"))
-        self.browser.find_element_by_link_text("Start reporting process").click()
+        self.browser.find_element(By.LINK_TEXT, "Start reporting process").click()
         self.element.enter_key()
         self.element.submit()
         self.assertSelectorNotContains(".has-error", "Error:")
 
     def test_matching_flow_form_redirect(self):
         self.browser.get(self.live_server_url + reverse("dashboard"))
-        self.browser.find_element_by_link_text("Start matching process").click()
+        self.browser.find_element(By.LINK_TEXT, "Start matching process").click()
         self.element.enter_key()
         self.element.submit()
         self.assertSelectorNotContains(".has-error", "Error:")
 
     def test_matching_flow_form_error(self):
         self.browser.get(self.live_server_url + reverse("dashboard"))
-        self.browser.find_element_by_link_text("Start matching process").click()
+        self.browser.find_element(By.LINK_TEXT, "Start matching process").click()
         self.element.enter_key()
         self.element.submit()
         self.element.submit()
@@ -453,7 +452,7 @@ class CallistoCoreCases(EncryptedFrontendTest):
     @unittest.skipIf(headless_mode(), "Not supported by headless browsers")
     def test_can_view_pdf(self):
         self.browser.get(self.live_server_url + reverse("dashboard"))
-        self.browser.find_element_by_link_text("View PDF").click()
+        self.browser.find_element(By.LINK_TEXT, "View PDF").click()
         self.element.enter_key()
         self.element.submit()
         self.wait_for_until_body_loaded()
