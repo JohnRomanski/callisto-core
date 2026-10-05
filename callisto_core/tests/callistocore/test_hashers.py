@@ -195,7 +195,16 @@ class StoredParametersTest(TestCase):
         return Report.objects.get(pk=report.pk), MatchReport.objects.get(pk=match.pk)
 
     def test_records_decrypt_after_argon2_settings_change(self):
-        report, match = self.make_records()
+        # create legacy argon2i records, then change argon2i's costs
+        with override_settings(
+            KEY_HASHERS=[
+                "callisto_core.delivery.hashers.Argon2KeyHasher",
+                "callisto_core.delivery.hashers.PBKDF2KeyHasher",
+            ]
+        ):
+            report, match = self.make_records()
+        self.assertTrue(report.encode_prefix.startswith("argon2$argon2i$"))
+        self.assertTrue(match.encode_prefix.startswith("argon2$argon2i$"))
         with (
             patch.object(hashers.Argon2KeyHasher, "memory_cost", 1024),
             patch.object(hashers.Argon2KeyHasher, "time_cost", 3),
