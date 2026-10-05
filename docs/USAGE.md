@@ -76,10 +76,11 @@ count. Use `RATELIMIT_USE_CACHE` to pick a cache alias other than `default`.
 ### Passphrase storage
 
 While someone fills in a report, the wizard needs their passphrase on every
-step. callisto-core keeps it in the session **encrypted** with a random
-per-browser key that is stored only in the `callisto_passphrase_key` cookie
-(HttpOnly, SameSite=Strict, cleared when the browser closes). The session
-store, usually the database, never holds a readable passphrase. Stored
+step. callisto-core stores it in a `StoredPassphrase` row (one per session and
+report) **encrypted** with a random per-browser key that is kept only in the
+`callisto_passphrase_key` cookie (HttpOnly, SameSite=Strict, cleared when the
+browser closes). The database never holds a readable passphrase, and separate
+rows mean requests from several tabs can't overwrite each other. Stored
 passphrases expire after `PASSPHRASE_SESSION_TTL` seconds without use
 (default 1800) and are removed on logout and when the dashboard loads.
 

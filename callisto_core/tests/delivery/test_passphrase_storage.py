@@ -1,12 +1,19 @@
+from datetime import timedelta
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model, logout
 from django.contrib.sessions.backends.db import SessionStore
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase, override_settings
 
 from callisto_core.delivery import passphrase_storage
+from callisto_core.delivery.models import StoredPassphrase
+
+User = get_user_model()
 
 REPORT_UUID = "8d2b6a52-3c0f-4a43-9a37-1c4f2a1e7b11"
+TAB_1_UUID = "1a1a1a1a-0000-4000-8000-000000000001"
+TAB_2_UUID = "2b2b2b2b-0000-4000-8000-000000000002"
 
 
 class PassphraseStorageTest(TestCase):
@@ -29,10 +36,12 @@ class PassphraseStorageTest(TestCase):
         request = self.request(cookies, SessionStore(session.session_key))
         self.assertEqual(passphrase_storage.load(request, REPORT_UUID), "correct horse")
 
-    def test_session_alone_cannot_recover_passphrase(self):
+    def test_database_alone_cannot_recover_passphrase(self):
         session, _, _ = self.store()
+        row = StoredPassphrase.objects.get(report_uuid=REPORT_UUID)
+        self.assertNotIn(b"correct horse", bytes(row.encrypted_passphrase))
+        self.assertNotIn("correct horse", str(SessionStore(session.session_key).load()))
         saved = SessionStore(session.session_key)
-        self.assertNotIn("correct horse", str(saved.load()))
         self.assertEqual(
             passphrase_storage.load(self.request(session=saved), REPORT_UUID), ""
         )
@@ -42,16 +51,19 @@ class PassphraseStorageTest(TestCase):
         other_session, other_cookies, _ = self.store("other")
         request = self.request(other_cookies, SessionStore(session.session_key))
         self.assertEqual(passphrase_storage.load(request, REPORT_UUID), "")
-        self.assertNotIn(REPORT_UUID, request.session[passphrase_storage.SESSION_KEY])
+        self.assertFalse(
+            StoredPassphrase.objects.filter(
+                session_key=session.session_key, report_uuid=REPORT_UUID
+            ).exists()
+        )
 
     @override_settings(PASSPHRASE_SESSION_TTL=60)
     def test_entries_expire_after_inactivity(self):
         session, cookies, _ = self.store()
         request = self.request(cookies, SessionStore(session.session_key))
-        with patch("callisto_core.delivery.passphrase_storage.time.time") as now:
-            now.return_value = (
-                session[passphrase_storage.SESSION_KEY][REPORT_UUID]["used"] + 61
-            )
+        used = StoredPassphrase.objects.get(report_uuid=REPORT_UUID).used
+        with patch("callisto_core.delivery.passphrase_storage.timezone.now") as now:
+            now.return_value = used + timedelta(seconds=61)
             self.assertEqual(passphrase_storage.load(request, REPORT_UUID), "")
 
     def test_cookie_is_httponly_and_strict(self):
@@ -65,3 +77,40 @@ class PassphraseStorageTest(TestCase):
         request = self.request(cookies, SessionStore(session.session_key))
         passphrase_storage.clear(request)
         self.assertEqual(passphrase_storage.load(request, REPORT_UUID), "")
+
+    def two_tabs(self, session_key, cookies):
+        # both requests read the session before either writes
+        tabs = [self.request(cookies, SessionStore(session_key)) for _ in range(2)]
+        for tab in tabs:
+            tab.session.keys()  # populates the cached copy
+        return tabs
+
+    def test_concurrent_stores_from_one_browser_keep_both(self):
+        session, cookies, _ = self.store()
+        tab_1, tab_2 = self.two_tabs(session.session_key, cookies)
+        passphrase_storage.store(tab_1, TAB_1_UUID, "one")
+        tab_1.session.save()
+        passphrase_storage.store(tab_2, TAB_2_UUID, "two")
+        tab_2.session.save()
+
+        fresh = self.request(cookies, SessionStore(session.session_key))
+        self.assertEqual(passphrase_storage.load(fresh, TAB_1_UUID), "one")
+        self.assertEqual(passphrase_storage.load(fresh, TAB_2_UUID), "two")
+
+    def test_concurrent_load_does_not_drop_new_store(self):
+        session, cookies, _ = self.store()
+        tab_1, tab_2 = self.two_tabs(session.session_key, cookies)
+        passphrase_storage.store(tab_1, TAB_1_UUID, "one")
+        tab_1.session.save()
+        passphrase_storage.load(tab_2, REPORT_UUID)  # refreshes expiry
+        tab_2.session.save()
+
+        fresh = self.request(cookies, SessionStore(session.session_key))
+        self.assertEqual(passphrase_storage.load(fresh, TAB_1_UUID), "one")
+
+    def test_logout_removes_stored_passphrases(self):
+        session, cookies, _ = self.store()
+        request = self.request(cookies, SessionStore(session.session_key))
+        request.user = User.objects.create_user(username="logout", password="x")
+        logout(request)
+        self.assertFalse(StoredPassphrase.objects.exists())

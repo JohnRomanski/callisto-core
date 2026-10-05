@@ -251,10 +251,8 @@ class ReportFlowHelper(TestCase, ReportPostHelper, ReportAssertionHelper):
         self.site.save()
 
     def client_clear_passphrase(self):
-        session = self.client.session
-        session.pop(passphrase_storage.SESSION_KEY, None)
-        session.save()
-        self.assertIsNone(self.client.session.get(passphrase_storage.SESSION_KEY))
+        session_key = self.client.session.session_key
+        models.StoredPassphrase.objects.filter(session_key=session_key).delete()
 
     def client_set_passphrase(self):
         # store the passphrase the way a passphrase form would, then hand the
