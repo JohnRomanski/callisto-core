@@ -1,4 +1,4 @@
-from unittest import expectedFailure, skip
+from unittest import skip
 
 from django.contrib.auth import get_user, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
-from callisto_core.accounts.forms import ReportingVerificationEmailForm
+from callisto_core.accounts.forms import LoginForm, ReportingVerificationEmailForm
 from callisto_core.accounts.models import Account
 from callisto_core.accounts.tokens import StudentVerificationTokenGenerator
 from callisto_core.accounts.views import SignupView
@@ -157,9 +157,6 @@ class LoginViewTest(AccountsTestCase):
 
         self.assertTrue(get_user(self.client).is_authenticated)
 
-    # site_id check in LoginForm.confirm_login_allowed was commented out in
-    # 5359f3ca ("update to not check site_id"); restore it or delete this test
-    @expectedFailure
     def test_user_login_blocked_for_other_sites(self):
         auth_info = {"username": "test", "password": "p@ssw0rd"}
         user = User.objects.create_user(**auth_info)
@@ -177,6 +174,16 @@ class LoginViewTest(AccountsTestCase):
             self.client.post(self.login_url, auth_info)
 
         self.assertTrue(get_user(self.client).is_authenticated)
+
+    def test_site_check_compares_ids_by_value(self):
+        # the original `is not` comparison rejected equal site ids > 256
+        user = User.objects.create_user(username="test", password="p@ssw0rd")
+        Account.objects.create(user=user, site_id=1000)
+        request = HttpRequest()
+        request.site = Site.objects.get(id=1)  # site with tenant config
+        form = LoginForm(request=request)
+        request.site = Site(id=int("1000"))
+        form.confirm_login_allowed(user)
 
     def test_disable_signups_has_special_instructions(self):
         with TempSiteID(2):
