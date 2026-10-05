@@ -5,7 +5,7 @@ mocks are fake models, used in place of actual models when rendering forms
 from . import fields
 
 
-class MockPage(object):
+class MockPage:
     pk = None
     id = None
 
@@ -24,7 +24,7 @@ class MockPage(object):
         return questions
 
 
-class MockQuestion(object):
+class MockQuestion:
     def __init__(self, data):
         self.pk = self.id = data.get("id")
         self.text = data.get("question_text")
@@ -64,7 +64,7 @@ class MockQuestion(object):
         return field_generator(self)
 
 
-class MockChoice(object):
+class MockChoice:
     def __init__(self, data):
         self.pk = self.id = data.get("pk")
         self.text = data.get("text")

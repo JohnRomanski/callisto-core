@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 import unittest
 from datetime import datetime
 from unittest import skip
@@ -9,8 +8,6 @@ from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
-
-from callisto_core.utils.tenant_api import strtobool
 from selenium.webdriver.support.wait import WebDriverWait
 
 from django.contrib.auth import get_user_model
@@ -21,6 +18,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from callisto_core.delivery.models import Report
+from callisto_core.utils.tenant_api import strtobool
 from callisto_core.wizard_builder.models import Choice
 from callisto_core.wizard_builder.tests import test_frontend as wizard_builder_tests
 
@@ -42,7 +40,7 @@ class AuthMixin:
     password = "demodemodemo123123"
 
 
-class AssertionsMixin(object):
+class AssertionsMixin:
     def assertCss(self, css):
         self.assertTrue(self.browser.find_elements_by_css_selector(css))
 
@@ -63,16 +61,16 @@ class AssertionsMixin(object):
     def assertSelectorContains(self, css, text):
         element_text = self._getElements(css, text)
         if not self._selectorContains(text, element_text):
-            raise AssertionError("""
-                '{}' not found in '{}'
-            """.format(text, element_text))
+            raise AssertionError(f"""
+                '{text}' not found in '{element_text}'
+            """)
 
     def assertSelectorNotContains(self, css, text):
         element_text = self._getElements(css, text)
         if self._selectorContains(text, element_text):
-            raise AssertionError("""
-                '{}' found in '{}'
-            """.format(text, element_text))
+            raise AssertionError(f"""
+                '{text}' found in '{element_text}'
+            """)
 
 
 class ElementHelper(wizard_builder_tests.ElementHelper, AuthMixin):
@@ -167,7 +165,7 @@ class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase
         super().setUp()
 
         port = urlparse(self.live_server_url).port
-        Site.objects.filter(id=1).update(domain="localhost:{}".format(port))
+        Site.objects.filter(id=1).update(domain=f"localhost:{port}")
         self.browser.get(self.live_server_url)
         self.wait_for_until_body_loaded()
 
@@ -198,24 +196,18 @@ class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase
 
     def _take_screenshot(self):
         filename = self._get_filename() + ".png"
-        logger.info("screenshotting to {}".format(filename))
+        logger.info(f"screenshotting to {filename}")
         self.browser.get_screenshot_as_file(filename)
 
     def _dump_html(self):
         filename = self._get_filename() + ".html"
-        logger.info("dumping page HTML to {}".format(filename))
+        logger.info(f"dumping page HTML to {filename}")
         with open(filename, "w") as f:
             f.write(self.browser.page_source)
 
     def _get_filename(self):
         timestamp = datetime.now().isoformat().replace(":", ".")[:19]
-        return "{folder}/{classname}.{method}-window{windowid}-{timestamp}".format(
-            folder=SCREEN_DUMP_LOCATION,
-            classname=self.__class__.__name__,
-            method=self._testMethodName,
-            windowid=self._windowid,
-            timestamp=timestamp,
-        )
+        return f"{SCREEN_DUMP_LOCATION}/{self.__class__.__name__}.{self._testMethodName}-window{self._windowid}-{timestamp}"
 
 
 @skip("disabled for 2019 summer maintenance - record creation is no longer supported")

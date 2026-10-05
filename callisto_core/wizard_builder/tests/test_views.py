@@ -1,8 +1,5 @@
-from copy import copy
-from unittest import mock, skip
+from unittest import skip
 
-from django.conf import settings
-from django.test import TestCase
 from django.urls import reverse
 
 from callisto_core.tests import test_base
@@ -11,7 +8,6 @@ from callisto_core.wizard_builder import models, view_helpers
 
 @skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class FormPersistenceTest(test_base.ReportFlowHelper):
-
     fixtures = ["wizard_builder_data"]
     form_key = view_helpers.StorageHelper.storage_form_key
 
@@ -117,7 +113,6 @@ class ViewTest(test_base.ReportFlowHelper):
 
     @skip("WIP")
     def test_review_page_choice_extra_info(self):
-        choice_data = {"question_1": ["1"], "extra_info": "beets"}
         self.client.post(self.choice_url, self.data)
         response = self.client.get(self.review_url)
         form_data = response.context["form_data"]

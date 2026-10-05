@@ -1,13 +1,6 @@
-import json
 from unittest import skip
 
-import gnupg
-
-from django.test import override_settings
-
-from callisto_core.delivery.models import Report
 from callisto_core.evaluation.models import EvalRow
-from callisto_core.tests.evaluation import test_keypair
 from callisto_core.tests.test_base import ReportFlowHelper as ReportFlowTestCase
 
 

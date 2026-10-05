@@ -5,7 +5,7 @@ from django.core.signing import Signer
 logger = logging.getLogger(__name__)
 
 
-class StudentVerificationTokenGenerator(object):
+class StudentVerificationTokenGenerator:
     def make_token(self, user):
         """
         makes a verification token for a user

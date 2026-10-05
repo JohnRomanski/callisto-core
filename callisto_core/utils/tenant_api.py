@@ -22,7 +22,7 @@ def cast_string_to_type(value: str, cast: [str, bool, int]) -> [str, bool, int]:
         raise KeyError("Invalid `cast` param")
 
 
-class CallistoCoreTenantApi(object):
+class CallistoCoreTenantApi:
     def get_current_domain(self):
         return 1
 

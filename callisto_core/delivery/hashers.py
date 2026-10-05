@@ -19,7 +19,7 @@ def get_hashers():
         hasher = hasher_cls()
         if not getattr(hasher, "algorithm"):
             raise ImproperlyConfigured(
-                "hasher doesn't specify an algorithm name: {}".format(hasher_path)
+                f"hasher doesn't specify an algorithm name: {hasher_path}"
             )
         hashers.append(hasher)
     return hashers
@@ -39,8 +39,8 @@ def get_hasher(algorithm="default"):
             return hashers[algorithm]
         except KeyError:
             raise ValueError(
-                "Unknown key hashing algorithm {0}."
-                "Did you specify it in the KEY_HASHERS setting?".format(algorithm)
+                f"Unknown key hashing algorithm {algorithm}."
+                "Did you specify it in the KEY_HASHERS setting?"
             )
 
 

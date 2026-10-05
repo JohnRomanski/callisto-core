@@ -13,7 +13,7 @@ class EmailValidationTest(TestCase):
         del settings.SITE_ID
         self.populate_sites()
         self.populate_emails()
-        super(EmailValidationTest, self).setUp()
+        super().setUp()
 
     def populate_sites(self):
         for i in range(1, 10):

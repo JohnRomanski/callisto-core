@@ -26,7 +26,7 @@ def report_as_pdf(report, data, recipient):
     )
 
 
-class MatchReportContent(object):
+class MatchReportContent:
     """
     Class to structure contact information collected
     from match submission form for report
@@ -105,8 +105,7 @@ class NumberedCanvas(canvas.Canvas):
         )
 
 
-class PDFReport(object):
-
+class PDFReport:
     unselected = "\u2610"
     selected = "\u2717"
     free_text = "\u2756"
@@ -242,7 +241,7 @@ class PDFReport(object):
             return "Anonymous User"
 
 
-class ReportPageMixin(object):
+class ReportPageMixin:
     def report_pages(self, reports: list):
         pages = []
         for report in reports:
@@ -263,7 +262,7 @@ class ReportPageMixin(object):
         ]
 
 
-class MatchPageMixin(object):
+class MatchPageMixin:
     def match_pages(self, match_report_and_report_content: list):
         pages = []
         for match_report, match_content in match_report_and_report_content:
@@ -353,7 +352,6 @@ class PDFFullReport(PDFReport, ReportPageMixin):
 
 
 class PDFMatchReport(PDFReport, MatchPageMixin):
-
     report_title = "Match Report"
 
     def __init__(self, matches, identifier):
@@ -434,7 +432,6 @@ class PDFMatchReport(PDFReport, MatchPageMixin):
 
 
 class PDFUserReviewReport(PDFReport, ReportPageMixin, MatchPageMixin):
-
     title = "Submitted and Matched Reports"
 
     def cover_page(self):

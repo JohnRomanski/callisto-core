@@ -4,7 +4,6 @@ from django_migration_testcase import MigrationTest
 
 
 class SitesMigrationTest(MigrationTest):
-
     app_name = "wizard_builder"
     before = "0005_delete_constraints"
     after = "0006_many_sites"
@@ -37,7 +36,6 @@ class SitesMigrationTest(MigrationTest):
 
 
 class QuestionPageMigrationTest(MigrationTest):
-
     app_name = "wizard_builder"
     before = "0008_remove_textpage"
     after = "0011_rename_questionpage_attrs"
@@ -63,7 +61,6 @@ class QuestionPageMigrationTest(MigrationTest):
 
 
 class PageIDMigrationTest(MigrationTest):
-
     app_name = "wizard_builder"
     before = "0011_rename_questionpage_attrs"
     after = "0014_questionpage_to_page_3"
@@ -89,7 +86,6 @@ class PageIDMigrationTest(MigrationTest):
 
 
 class PopulateTypeMigrationTest(MigrationTest):
-
     app_name = "wizard_builder"
     before = "0028_formquestion_type"
     after = "0029_populate_type"
@@ -125,7 +121,6 @@ class PopulateTypeMigrationTest(MigrationTest):
 
 
 class PopulateDropdownMigrationTest(MigrationTest):
-
     app_name = "wizard_builder"
     before = "0031_formquestion_choices_default"
     after = "0032_move_question_dropdown"
@@ -151,7 +146,6 @@ class PopulateDropdownMigrationTest(MigrationTest):
 
 
 class MoveChoiceQuestionMigrationTest(MigrationTest):
-
     app_name = "wizard_builder"
     before = "0033_add_temps"
     after = "0035_auto_20171025_0014"
@@ -180,7 +174,6 @@ class MoveChoiceQuestionMigrationTest(MigrationTest):
 
 
 class DropdownMigrationTest(MigrationTest):
-
     app_name = "wizard_builder"
     before = "0039_dropdown_proxy"
     after = "0040_populate_dropdown"
@@ -205,7 +198,6 @@ class DropdownMigrationTest(MigrationTest):
 
 
 class SitePageQuestionMigrationTest(MigrationTest):
-
     app_name = "wizard_builder"
     before = "0048_formquestion_sites"
     after = "0049_copy_sites_from_page_to_question"
@@ -220,7 +212,7 @@ class SitePageQuestionMigrationTest(MigrationTest):
         page = Page.objects.create()
         page.sites.add(1)
         question = FormQuestion.objects.create(page=page)
-        question_2 = FormQuestion.objects.create(page=page)
+        FormQuestion.objects.create(page=page)
 
         for question in FormQuestion.objects.all():
             self.assertFalse(question.sites.count())

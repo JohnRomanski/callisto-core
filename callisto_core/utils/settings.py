@@ -16,7 +16,7 @@ PASSWORD_MAX_LENGTH = 120
 
 def load_file(path):
     path = os.path.join(BASE_DIR, path)
-    with open(path, "r") as file_data:
+    with open(path) as file_data:
         data = file_data.read()
     return data
 
@@ -122,7 +122,6 @@ LOGGING = {
         }
     },
     "loggers": {
-        "gnupg": {"handlers": ["console"], "propagate": False, "level": "INFO"},
         "django.db": {"handlers": ["console"], "propagate": False, "level": "INFO"},
         "django": {"handlers": ["console"], "propagate": False, "level": "DEBUG"},
         "django.template": {

@@ -4,7 +4,7 @@ from callisto_core.delivery.models import MatchReport, Report
 from callisto_core.utils.api import NotificationApi, TenantApi
 
 
-class UserReviewCommandBackend(object):
+class UserReviewCommandBackend:
     @property
     def site_id(self):
         return 1

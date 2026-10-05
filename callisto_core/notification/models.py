@@ -19,7 +19,7 @@ class EmailNotification(models.Model):
 
     def clean(self):
         self.save()
-        super(EmailNotification, self).clean()
+        super().clean()
         validate_email_unique(self)
 
     @property

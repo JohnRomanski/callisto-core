@@ -1,8 +1,8 @@
 import json
 from unittest import skip
+from unittest.mock import ANY, patch
 
 from django_migration_testcase import MigrationTest
-from unittest.mock import ANY, patch
 
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
@@ -17,7 +17,6 @@ User = get_user_model()
 
 
 class MatchReportMigrationTest(MigrationTest):
-
     app_name = "delivery"
     before = "0003_allow_deletion_of_identifier"
     after = "0007_add_argon2_with_rolling_upgrades"
@@ -113,7 +112,7 @@ class MatchReportMigrationTest(MigrationTest):
                 salt, identifier, json.dumps(report_content.__dict__)
             )
         )
-        match_report = MatchReport.objects.create(
+        MatchReport.objects.create(
             report=report2, identifier=identifier, encrypted=encrypted_report, salt=salt
         )
         MatchingApi.find_matches("test_identifier")
@@ -122,7 +121,6 @@ class MatchReportMigrationTest(MigrationTest):
 
 
 class MultipleRecipientMigrationTest(MigrationTest):
-
     app_name = "delivery"
     before = "0008_make_salt_nullable"
     after = "0009_to_address_to_textfield"

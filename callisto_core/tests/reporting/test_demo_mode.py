@@ -21,9 +21,10 @@ class DemoModeNotificationSubjectTest(ReportFlowTestCase):
     def test_demo_mode(self):
         Site.objects.get_or_create(id=4)
 
-        with TempSiteID(4), patch.object(
-            CustomNotificationApi, "_logging"
-        ) as api_logging:
+        with (
+            TempSiteID(4),
+            patch.object(CustomNotificationApi, "_logging") as api_logging,
+        ):
             self.client_post_report_creation()
             self.client_post_reporting_end_step()
 
@@ -54,9 +55,10 @@ class DemoModeNotificationNameTest(ReportFlowTestCase):
     def test_demo_mode(self):
         Site.objects.get_or_create(id=4)
 
-        with TempSiteID(4), patch.object(
-            CustomNotificationApi, "_logging"
-        ) as api_logging:
+        with (
+            TempSiteID(4),
+            patch.object(CustomNotificationApi, "_logging") as api_logging,
+        ):
             self.client_post_report_creation()
             self.client_post_reporting_end_step()
 
@@ -81,9 +83,10 @@ class DemoModeNotificationCallCountTest(ReportFlowTestCase):
     def test_demo_mode(self):
         Site.objects.get_or_create(id=4)
 
-        with TempSiteID(4), patch.object(
-            CustomNotificationApi, "send_email"
-        ) as api_logging:
+        with (
+            TempSiteID(4),
+            patch.object(CustomNotificationApi, "send_email") as api_logging,
+        ):
             self.client_post_report_creation()
             self.client_post_reporting_end_step()
 

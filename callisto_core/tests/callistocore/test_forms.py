@@ -2,7 +2,7 @@ from unittest import skip
 from unittest.mock import MagicMock
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
 from callisto_core.delivery import forms
 

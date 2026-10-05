@@ -24,7 +24,7 @@ def conditional_field_from_choice(choice):
         return ConditionalField.textinfo(choice)
 
 
-class ConditionalField(object):
+class ConditionalField:
     @classmethod
     def dropdown(cls, choice):
         attrs = {
@@ -47,7 +47,7 @@ class ConditionalField(object):
         return Field(required=False, widget=TextInput(attrs=attrs))
 
 
-class ConditionalGenerator(object):
+class ConditionalGenerator:
     """
     generates the "context" data needed to render a conditional
     """

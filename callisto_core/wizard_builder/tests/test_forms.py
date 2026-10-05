@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from callisto_core.wizard_builder import forms, managers, mocks
+from callisto_core.wizard_builder import managers
 
 
 class FormSerializationTest(TestCase):

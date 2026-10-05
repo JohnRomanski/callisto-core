@@ -14,9 +14,7 @@ from callisto_core.accounts.models import Account
 from callisto_core.accounts.tokens import StudentVerificationTokenGenerator
 from callisto_core.accounts.views import SignupView
 from callisto_core.tests.test_base import ReportFlowHelper as ReportFlowTestCase
-from callisto_core.utils.api import NotificationApi
 from callisto_core.utils.sites import TempSiteID
-from callisto_core.wizard_builder.models import Page, SingleLineText
 
 User = get_user_model()
 
@@ -58,7 +56,7 @@ class SignupViewIntegratedTest(AccountsTestCase):
         self.assertFalse(response.context["form"].is_valid())
 
     def test_user_gets_logged_in_after_signup(self):
-        response = self.client.post(self.signup_url, self.DEFAULT_POST)
+        self.client.post(self.signup_url, self.DEFAULT_POST)
         self.assertTrue(get_user(self.client).is_authenticated)
 
     def test_redirects_to_next(self):
@@ -101,7 +99,7 @@ class SignupViewIntegratedTest(AccountsTestCase):
         temp_site_id = 2
         Site.objects.create(id=temp_site_id)
         with TempSiteID(temp_site_id):
-            response = self.client.post(self.signup_url, self.DEFAULT_POST)
+            self.client.post(self.signup_url, self.DEFAULT_POST)
             self.assertFalse(User.objects.filter(username="test"))
 
     @override_settings(SITE_ID=2)

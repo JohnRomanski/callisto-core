@@ -73,7 +73,6 @@ class LoginForm(AuthenticationForm):
 
 
 class SignUpForm(UserCreationForm):
-
     username = CharField(
         label="Username",
         widget=TextInput(

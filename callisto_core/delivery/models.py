@@ -9,7 +9,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 
-from . import hashers, model_helpers, security, utils
+from . import hashers, security, utils
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class Report(models.Model):
     )
 
     def __str__(self):
-        return "Record(uuid={})".format(self.uuid)
+        return f"Record(uuid={self.uuid})"
 
     @property
     def entered_into_matching(self):
@@ -61,7 +61,8 @@ class Report(models.Model):
         self.save()
 
     def decrypt_record(
-        self, passphrase: str  # aka secret key aka passphrase
+        self,
+        passphrase: str,  # aka secret key aka passphrase
     ) -> dict or str:
         """decrypts record text from record.encrypted, with the passphrase"""
         if not (self.encode_prefix or self.salt):
@@ -100,7 +101,9 @@ class Report(models.Model):
         return super().save(*args, **kwargs)
 
     def _return_or_transform(
-        self, data: list or dict, key: str  # aka secret key aka passphrase
+        self,
+        data: list or dict,
+        key: str,  # aka secret key aka passphrase
     ) -> dict:
         """
         given a set of data in old list or new dict format, return
@@ -144,7 +147,7 @@ class MatchReport(models.Model):
     salt = models.TextField(null=True)  # used for backwards compatibility
 
     def __str__(self):
-        return "MatchReport for report(pk={0})".format(self.report.pk)
+        return f"MatchReport for report(pk={self.report.pk})"
 
     @property
     def match_found(self):
@@ -177,7 +180,8 @@ class MatchReport(models.Model):
         self.save()
 
     def get_match(
-        self, identifier: str  # MatchReport is encrypted with the identifier
+        self,
+        identifier: str,  # MatchReport is encrypted with the identifier
     ) -> str or None:
         """
         Checks if the given identifier triggers a match on this report.
