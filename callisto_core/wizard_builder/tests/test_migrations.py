@@ -213,7 +213,6 @@ class SitePageQuestionMigrationTest(MigrationTest):
     def migrate_kwargs(self):
         return {"verbosity": 1, "interactive": False}
 
-    @skip("rollback to 0048 leaves a delivery_report FK that breaks Postgres flush")
     def test_site_populated(self):
         FormQuestion = self.get_model_before("wizard_builder.FormQuestion")
         Page = self.get_model_before("wizard_builder.Page")
