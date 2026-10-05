@@ -9,7 +9,7 @@ from django.db import connection
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-from callisto_core.delivery.models import MatchReport, Report
+from callisto_core.delivery.models import MatchReport, Report, SentMatchReport
 from callisto_core.notification import tasks
 from callisto_core.reporting.api import CallistoCoreMatchingApi
 from callisto_core.reporting.report_delivery import MatchReportContent
@@ -79,6 +79,11 @@ class MatchIntegratedTest(MatchSetup, ReportPostHelper):
         self.assertEqual(len(deliveries), 1)
         self.assertEqual(deliveries[0]["to"], ["COORDINATOR_EMAIL@example.com"])
         self.assertEqual(len(deliveries[0]["attachments"]), 1)
+        # the delivery record stores the full address too
+        self.assertEqual(
+            list(SentMatchReport.objects.values_list("to_address", flat=True)),
+            ["COORDINATOR_EMAIL@example.com"],
+        )
 
     def test_some_match_emails_sent(self):
         with patch.object(CustomNotificationApi, "log_action") as api_logging:

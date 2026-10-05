@@ -27,6 +27,13 @@ from callisto_core.utils.api import TenantApi
 logger = logging.getLogger(__name__)
 
 
+def _address_list(to_addresses):
+    """Accepts one address string or a list; returns a list."""
+    if isinstance(to_addresses, str):
+        return [to_addresses]
+    return list(to_addresses)
+
+
 class CallistoCoreNotificationApi:
     report_filename = "callisto_record_{0}.pdf.gpg"
     report_title = "Callisto Record"
@@ -155,6 +162,7 @@ class CallistoCoreNotificationApi:
 
         Called at the end of the "reporting" flow
         """
+        to_addresses = _address_list(to_addresses)
         self.context = {
             "notification_name": "report_delivery",
             "to_addresses": to_addresses,
@@ -213,6 +221,7 @@ class CallistoCoreNotificationApi:
 
         Called during a successful matching run
         """
+        to_addresses = _address_list(to_addresses)
         user = matches[0].report.owner
 
         self.context = {
