@@ -67,6 +67,6 @@ class GPGEncryptTest(TestCase):
             gpg_encrypt("report contents", "not a public key")
 
     def test_expired_key_raises_instead_of_returning_empty(self):
-        # the checked-in test key expired; the old code sent an empty file here
+        # the old code sent an empty file here
         with self.assertRaises(GPGEncryptionError):
-            gpg_encrypt("report contents", test_keypair.public_test_key)
+            gpg_encrypt("report contents", test_keypair.expired_public_test_key)
