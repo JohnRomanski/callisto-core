@@ -1,13 +1,12 @@
-from unittest import skip
+import json
 
 from django.urls import reverse
 
-from callisto_core.delivery import forms, models
+from callisto_core.delivery import forms, models, passphrase_storage
 from callisto_core.tests import test_base
 from callisto_core.wizard_builder.forms import PageForm
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class LegacyStorageFormatTest(test_base.ReportFlowHelper):
     def _setup_user(self, *args, **kwargs):
         pass
@@ -37,7 +36,6 @@ class LegacyStorageFormatTest(test_base.ReportFlowHelper):
         self.assertFalse(storage.get("wizard_form_data", False))
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class NewReportFlowTest(test_base.ReportFlowHelper):
     def test_report_creation_renders_create_form(self):
         response = self.client.get(reverse("report_new"))
@@ -57,13 +55,14 @@ class NewReportFlowTest(test_base.ReportFlowHelper):
         form = response.context["form"]
         self.assertIsInstance(form, PageForm)
 
-    def test_report_creation_adds_key_to_session(self):
-        self.assertEqual(self.client.session.get("passphrases"), None)
+    def test_report_creation_keeps_passphrase_encrypted_in_session(self):
+        self.assertIsNone(self.client.session.get(passphrase_storage.SESSION_KEY))
         self.client_post_report_creation()
-        self.assertEqual(
-            self.client.session.get("passphrases"),
-            {str(self.report.uuid): self.passphrase},
-        )
+        stored = self.client.session[passphrase_storage.SESSION_KEY]
+        self.assertEqual(list(stored), [str(self.report.uuid)])
+        # the session (a database row) never holds the plaintext passphrase
+        self.assertNotIn(self.passphrase, json.dumps(stored))
+        self.assertIn(passphrase_storage.COOKIE_NAME, self.client.cookies)
 
     def test_access_form_rendered_when_no_key_in_session(self):
         response = self.client_post_report_creation()
@@ -106,7 +105,28 @@ class NewReportFlowTest(test_base.ReportFlowHelper):
         self.assertIsInstance(form, forms.ReportAccessForm)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
+class StoredPassphraseFlowTest(test_base.ReportFlowHelper):
+    def test_answers_saved_across_steps_without_reentering_passphrase(self):
+        self.client_post_report_creation()
+        # neither post includes the passphrase; it comes from the session
+        self.client_post_answer_question()
+        self.client_post_answer_second_page_question()
+        answers = self.decrypted_report["data"]
+        self.assertEqual(answers["question_3"], "blanket ipsum pillowfight")
+        self.assertEqual(answers["question_2"], "cupcake ipsum catsmeow")
+
+    def test_without_cookie_key_passphrase_must_be_reentered(self):
+        self.client_post_report_creation()
+        del self.client.cookies[passphrase_storage.COOKIE_NAME]
+        page = reverse("report_update", kwargs={"step": 0, "uuid": self.report.uuid})
+
+        response = self.client.get(page)
+        self.assertIsInstance(response.context["form"], forms.ReportAccessForm)
+
+        response = self.client_post_report_access(page)
+        self.assertNotIsInstance(response.context["form"], forms.ReportAccessForm)
+
+
 class ReportMetaFlowTest(test_base.ReportFlowHelper):
     def test_report_action_passthrough_request(self):
         self.client_post_report_creation()
@@ -135,7 +155,7 @@ class ReportMetaFlowTest(test_base.ReportFlowHelper):
         response = self.client_post_report_pdf_view()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.get("Content-Disposition"), 'inline; filename="report.pdf"'
+            response.get("Content-Disposition"), 'inline; filename="record.pdf"'
         )
 
     def test_match_report_entry(self):

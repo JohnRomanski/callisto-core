@@ -1,11 +1,12 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
-from django.test import TestCase
+from django.http import HttpResponse
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from callisto_core.accounts.models import Account
-from callisto_core.delivery import models
+from callisto_core.delivery import models, passphrase_storage
 
 User = get_user_model()
 
@@ -65,9 +66,16 @@ class ReportPostHelper:
         return response
 
     def client_post_report_creation(self):
-        self.client_get_report_creation()
+        form = self.client_get_report_creation().context["form"]
         url = reverse("report_new")
-        data = {"key": self.passphrase, "key_confirmation": self.passphrase}
+        data = {
+            "key": self.passphrase,
+            "key_confirmation": self.passphrase,
+            # hidden fields the browser submits with the rendered form
+            "token": form.initial["token"],
+            "uuid": form.initial["uuid"],
+            "endpoint": form["endpoint"].value(),
+        }
         response = self.client.post(url, data, follow=True)
         self.report = response.context["report"]
         self.assertIn(response.status_code, self.valid_statuses)
@@ -244,13 +252,20 @@ class ReportFlowHelper(TestCase, ReportPostHelper, ReportAssertionHelper):
 
     def client_clear_passphrase(self):
         session = self.client.session
-        session["passphrases"] = {}
+        session.pop(passphrase_storage.SESSION_KEY, None)
         session.save()
-        self.assertEqual(self.client.session.get("passphrases"), {})
+        self.assertIsNone(self.client.session.get(passphrase_storage.SESSION_KEY))
 
     def client_set_passphrase(self):
-        session = self.client.session
-        passphrases = session.get("passphrases", {})
-        passphrases[str(self.report.uuid)] = self.passphrase
-        session["passphrases"] = passphrases
-        session.save()
+        # store the passphrase the way a passphrase form would, then hand the
+        # resulting cookie key to the test client
+        request = RequestFactory().get("/")
+        request.session = self.client.session
+        request.COOKIES = {
+            name: morsel.value for name, morsel in self.client.cookies.items()
+        }
+        passphrase_storage.store(request, self.report.uuid, self.passphrase)
+        request.session.save()
+        response = passphrase_storage.set_cookie(request, HttpResponse())
+        for name, morsel in response.cookies.items():
+            self.client.cookies[name] = morsel.value

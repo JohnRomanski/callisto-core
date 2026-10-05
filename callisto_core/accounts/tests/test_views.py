@@ -1,5 +1,3 @@
-from unittest import skip
-
 from django.contrib.auth import get_user, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.sites.models import Site
@@ -24,7 +22,6 @@ class AccountsTestCase(ReportFlowTestCase):
         pass
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class SignupViewIntegratedTest(AccountsTestCase):
     signup_url = reverse("signup")
     DEFAULT_POST = {
@@ -109,7 +106,6 @@ class SignupViewIntegratedTest(AccountsTestCase):
         self.assertRedirects(response, reverse("login"))
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class SignupViewUnitTest(AccountsTestCase):
     def setUp(self):
         super().setUp()
@@ -191,7 +187,6 @@ class LoginViewTest(AccountsTestCase):
         self.assertContains(response, "You should have gotten an email")
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class StudentVerificationTest(AccountsTestCase):
     def setUp(self):
         super().setUp()

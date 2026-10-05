@@ -1,4 +1,3 @@
-from unittest import skip
 from unittest.mock import MagicMock
 
 from django.contrib.auth import get_user_model
@@ -11,7 +10,6 @@ from .. import test_base
 User = get_user_model()
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class ReportCreateFormTest(TestCase):
     def test_nonmatching_keys_rejected(self):
         form = forms.ReportCreateForm(
@@ -31,7 +29,6 @@ class ReportCreateFormTest(TestCase):
         self.assertTrue(form.is_valid())
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class ReportAccessFormTest(test_base.ReportFlowHelper):
     def test_wrong_key_rejected(self):
         self.client_post_report_creation()

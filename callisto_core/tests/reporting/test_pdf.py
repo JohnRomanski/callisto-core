@@ -1,5 +1,4 @@
 from io import BytesIO
-from unittest import skip
 from unittest.mock import patch
 
 import pypdf
@@ -22,7 +21,6 @@ mock_report_data = [
 ]
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class UserReviewPDFTest(test_base.ReportFlowHelper):
     def test_text_present(self):
         pdf = PDFUserReviewReport.generate({})
@@ -46,23 +44,24 @@ class UserReviewPDFTest(test_base.ReportFlowHelper):
         self.client_post_report_creation()
         pdf = PDFUserReviewReport.generate({"reports": [self.report]})
         pdf_reader = pypdf.PdfReader(BytesIO(pdf))
-        self.assertIn("Report", pdf_reader.pages[1].extract_text())
+        self.assertIn("Record", pdf_reader.pages[1].extract_text())
 
-    def test_report_contact_info_present(self):
+    def test_report_contact_info_not_included(self):
+        # contact info was removed from PDFs in ccb3bc66 (data minimization)
         self.client_post_report_creation()
         self.client_post_report_prep()
         pdf = PDFUserReviewReport.generate({"reports": [self.report]})
-        pdf_reader = pypdf.PdfReader(BytesIO(pdf))
-        self.assertIn(self.report_contact_email, pdf_reader.pages[1].extract_text())
-        self.assertIn(self.report_contact_phone, pdf_reader.pages[1].extract_text())
+        text = pypdf.PdfReader(BytesIO(pdf)).pages[1].extract_text()
+        self.assertNotIn(self.report_contact_email, text)
+        self.assertNotIn(self.report_contact_phone, text)
 
     def test_two_reports(self):
         self.client_post_report_creation()
         self.client_post_report_prep()
         pdf = PDFUserReviewReport.generate({"reports": [self.report, self.report]})
         pdf_reader = pypdf.PdfReader(BytesIO(pdf))
-        self.assertIn(self.report_contact_email, pdf_reader.pages[2].extract_text())
-        self.assertIn(self.report_contact_phone, pdf_reader.pages[2].extract_text())
+        self.assertEqual(len(pdf_reader.pages), 3)
+        self.assertIn("Record", pdf_reader.pages[2].extract_text())
 
     def test_output_file(self):
         """
@@ -79,7 +78,6 @@ class UserReviewPDFTest(test_base.ReportFlowHelper):
             dst_pdf.write(_file)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class MatchingUserReviewPDFTest(MatchSetup):
     def test_title(self):
         matching_id = "test1a08daw awd7awgd 1213123"
@@ -98,7 +96,8 @@ class MatchingUserReviewPDFTest(MatchSetup):
         self.assertNotIn(matching_id, pdf_reader.pages[1].extract_text())
         self.assertNotIn(matching_id, pdf_reader.pages[2].extract_text())
 
-    def test_contact_info_present(self):
+    def test_contact_info_not_included(self):
+        # contact info was removed from PDFs in ccb3bc66 (data minimization)
         matching_id = "test1a08daw awd7awgd 1213123"
         contact_phone = "555-555-5555"
         self.create_match(self.user1, matching_id)
@@ -107,7 +106,7 @@ class MatchingUserReviewPDFTest(MatchSetup):
         self.most_recent_report.save()
         pdf = PDFUserReviewReport.generate({"matches": MatchReport.objects.all()})
         pdf_reader = pypdf.PdfReader(BytesIO(pdf))
-        self.assertIn(contact_phone, pdf_reader.pages[2].extract_text())
+        self.assertNotIn(contact_phone, pdf_reader.pages[2].extract_text())
 
     def test_output_file(self):
         """
@@ -127,7 +126,6 @@ class MatchingUserReviewPDFTest(MatchSetup):
             dst_pdf.write(_file)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class ManagementCommandTest(MatchSetup):
     def test_action_logged(self):
         matching_id = "test1a08daw awd7awgd 1213123"
@@ -138,15 +136,14 @@ class ManagementCommandTest(MatchSetup):
             self.assertEqual(api_logging.call_count, 1)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class ReportPDFTest(test_base.ReportFlowHelper):
     def test_report_pdf(self):
         self.client_post_report_creation()
         pdf = report_as_pdf(report=self.report, data=mock_report_data, recipient=None)
         pdf_reader = pypdf.PdfReader(BytesIO(pdf))
 
-        self.assertIn("Title IX Coordinator", pdf_reader.pages[0].extract_text())
-        self.assertIn("Reported by: testing_12", pdf_reader.pages[1].extract_text())
+        # recipient and reporter lines were removed in 1eb38731 (PDF copy updates)
+        self.assertNotIn("Reported by", pdf_reader.pages[1].extract_text())
         self.assertIn("food options", pdf_reader.pages[1].extract_text())
         self.assertIn("vegetables", pdf_reader.pages[1].extract_text())
         self.assertIn("apples: red", pdf_reader.pages[1].extract_text())
