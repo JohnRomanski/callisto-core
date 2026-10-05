@@ -6,7 +6,6 @@ from callisto_core.tests import test_base
 from callisto_core.wizard_builder import models, view_helpers
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class FormPersistenceTest(test_base.ReportFlowHelper):
     fixtures = ["wizard_builder_data"]
     form_key = view_helpers.StorageHelper.storage_form_key
@@ -71,7 +70,6 @@ class FormPersistenceTest(test_base.ReportFlowHelper):
         self.assertEqual(form_before, form_after)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class ViewTest(test_base.ReportFlowHelper):
     fixtures = ["wizard_builder_data"]
 

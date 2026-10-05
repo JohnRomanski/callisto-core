@@ -1,4 +1,3 @@
-from unittest import skip
 from unittest.mock import call, patch
 
 from callisto_core.delivery.forms import ReportAccessForm
@@ -20,7 +19,6 @@ class ReportingHelper(test_base.ReportFlowHelper):
         self.assertIsInstance(response.context["form"], ReportAccessForm)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class SubmissionViewTest(ReportingHelper):
     def setUp(self):
         super().setUp()
@@ -43,7 +41,6 @@ class MatchingHelper(ReportingHelper):
         self.assertEqual(SentFullReport.objects.count(), 0)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class MatchingViewTest(MatchingHelper):
     def test_multiple_email_copies_resolved(self):
         email = EmailNotification.objects.create(name="match_confirmation")
@@ -69,7 +66,6 @@ class MatchingViewTest(MatchingHelper):
         self.assertEqual(api_logging.call_count, 0)
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class MatchingOptionalViewTest(MatchingHelper):
     def request(self):
         return self.client_post_matching_enter_empty()
@@ -96,7 +92,6 @@ class MatchingOptionalViewTest(MatchingHelper):
         self.recovers_from_no_passphrase()
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class MatchingRequiredViewTest(MatchingHelper):
     def request(self):
         return self.client_post_matching_enter()
@@ -121,7 +116,6 @@ class MatchingRequiredViewTest(MatchingHelper):
         self.recovers_from_no_passphrase()
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class ConfirmationViewTest(ReportingHelper):
     def request(self):
         return self.client_post_reporting_end_step()

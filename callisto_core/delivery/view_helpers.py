@@ -14,6 +14,8 @@ from django.urls import reverse
 
 from callisto_core.wizard_builder import view_helpers as wizard_builder_helpers
 
+from . import passphrase_storage
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +35,21 @@ class ReportStorageHelper:
     def __init__(self, view):
         self.view = view  # TODO: scope down input
 
-    passphrase = ""
+    _passphrase = None
+
+    @property
+    def passphrase(self) -> str:
+        """The passphrase set on this helper, else the one kept in the session"""
+        if self._passphrase is not None:
+            return self._passphrase
+        report_uuid = getattr(self.report, "uuid", None)
+        if not report_uuid:
+            return ""
+        return passphrase_storage.load(self.view.request, report_uuid)
+
+    @passphrase.setter
+    def passphrase(self, value):
+        self._passphrase = value
 
     @property
     def report(self):
@@ -47,12 +63,11 @@ class ReportStorageHelper:
         return self.report.decrypt_record(passphrase)
 
     def set_passphrase(self, key, report=None):
-        # self.passphrase = key
-        pass
+        report = report or self.report
+        passphrase_storage.store(self.view.request, report.uuid, key)
 
     def clear_passphrases(self):
-        # self.passphrase = ''
-        pass
+        passphrase_storage.clear(self.view.request)
 
 
 class _LegacyReportStorageHelper(ReportStorageHelper):

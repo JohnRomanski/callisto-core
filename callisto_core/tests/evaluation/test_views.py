@@ -1,10 +1,7 @@
-from unittest import skip
-
 from callisto_core.evaluation.models import EvalRow
 from callisto_core.tests.test_base import ReportFlowHelper as ReportFlowTestCase
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class EvalViewTest(ReportFlowTestCase):
     def test_some_eval_rows_created(self):
         self.assertFalse(EvalRow.objects.count())

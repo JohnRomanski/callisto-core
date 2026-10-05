@@ -19,7 +19,6 @@ from callisto_core.utils.api import MatchingApi
 User = get_user_model()
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class MatchDiscoveryTest(MatchSetup):
     def test_two_matching_reports_match(self):
         self.create_match(self.user1, "test1")
@@ -44,7 +43,6 @@ class MatchDiscoveryTest(MatchSetup):
         self.assert_matches_found_true()
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class MatchIntegratedTest(MatchSetup, ReportPostHelper):
     fixtures = ["wizard_builder_data", "callisto_core_notification_data"]
 
@@ -141,7 +139,6 @@ class ConcurrentMatchingTest(TransactionTestCase):
         self.assertTrue(all(Report.objects.values_list("match_found", flat=True)))
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class MatchNotificationTest(MatchSetup):
     @skip("notification mechanics moved to view partials")
     def test_basic_email_case(self):

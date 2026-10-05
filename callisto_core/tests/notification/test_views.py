@@ -1,4 +1,3 @@
-from unittest import skip
 from unittest.mock import ANY, call, patch
 
 from callisto_core.reporting.views import ReportingConfirmationView
@@ -6,7 +5,6 @@ from callisto_core.tests.test_base import ReportFlowHelper as ReportFlowTestCase
 from callisto_core.tests.utils.api import CustomNotificationApi
 
 
-@skip("disabled for 2019 summer maintenance - record creation is no longer supported")
 class NotificationViewTest(ReportFlowTestCase):
     def test_submit_confirmation_admin_email(self):
         with patch.object(CustomNotificationApi, "_logging") as api_logging:

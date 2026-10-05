@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.test import TestCase
 
+from callisto_core.accounts.models import Account
 from callisto_core.delivery.models import MatchReport, Report
 from callisto_core.reporting.report_delivery import MatchReportContent
 from callisto_core.utils.api import MatchingApi
@@ -22,6 +23,8 @@ class MatchSetup(TestCase):
         self.user2 = User.objects.create_user(username="tset22", password="test")
         self.user3 = User.objects.create_user(username="tset333", password="test")
         self.user4 = User.objects.create_user(username="tset4444", password="test")
+        for user in [self.user1, self.user2, self.user3, self.user4]:
+            Account.objects.create(user=user, site_id=1)
 
     def assert_matches_found_true(self):
         self.assert_matches_found(self.assertTrue)
