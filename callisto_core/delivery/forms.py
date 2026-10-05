@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 
+import pyseto
 from nacl.exceptions import CryptoError
 
 from django import forms
@@ -10,8 +12,6 @@ from django.contrib.auth import get_user_model
 from callisto_core.utils.forms import NoRequiredLabelMixin
 
 from . import fields, models
-
-import paseto
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -28,12 +28,14 @@ def passphrase_field(label):
 
 
 def _generate_token(form):
-    key = bytes.fromhex(os.environ["PASETO_PRIVATE_KEY"])
+    # PASETO_PRIVATE_KEY is a libsodium Ed25519 secret key: 32-byte seed + public key
+    seed = bytes.fromhex(os.environ["PASETO_PRIVATE_KEY"])[:32]
+    key = pyseto.Key.from_asymmetric_key_params(version=2, d=seed)
     claims = {
         "user": str(form.view.request.user.account.uuid),
         "partner": settings.DATABASES["default"]["SCHEMA"],
     }
-    token = paseto.create(key=key, purpose="public", claims=claims, exp_seconds=300)
+    token = pyseto.encode(key, claims, serializer=json, exp=300)
     return token.decode("utf-8")
 
 
