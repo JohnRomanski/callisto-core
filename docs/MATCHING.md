@@ -146,9 +146,10 @@ A possible middle ground, but it still needs review of the leakage.
    (pepper-encrypted identifier, only its id is queued), `MatchEvent` outbox
    written in the matching transaction, per-step notification marking, and a
    sweeper (`process_pending_matches` / `sweep_pending_matches`).
-2. Treat Argon2id cost as a matching-latency knob until A ships: lowering
-   `ARGON2ID_*` speeds matching for new records at the cost of guessing
-   resistance.
+2. Treat Argon2id cost as a matching-throughput knob: with matching in a
+   worker it no longer delays the request, but each submission still costs one
+   derivation per stored match report. Lowering `ARGON2ID_*` speeds matching
+   for new records at the cost of guessing resistance.
 3. If matching must scale beyond thousands of reports, commission a
    cryptographer to review **C** (preferred) or **D**, against the threat
    model above.

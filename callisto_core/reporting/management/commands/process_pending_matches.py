@@ -20,5 +20,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, older_than_minutes, **options):
-        jobs, events = matching.sweep(timedelta(minutes=older_than_minutes))
-        self.stdout.write(f"processed {jobs} matching jobs and {events} match events")
+        jobs, events, failures = matching.sweep(timedelta(minutes=older_than_minutes))
+        self.stdout.write(
+            f"processed {jobs} matching jobs and {events} match events"
+            f" ({failures} failed, see the log)"
+        )

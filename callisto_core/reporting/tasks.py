@@ -68,6 +68,8 @@ def sweep_pending_matches():
     """Run periodically (Celery beat) to recover lost or failed matching work."""
     from callisto_core.reporting import matching
 
-    jobs, events = matching.sweep()
+    jobs, events, failures = matching.sweep()
     if jobs or events:
-        logger.warning(f"swept {jobs} matching jobs and {events} match events")
+        logger.warning(
+            f"swept {jobs} matching jobs and {events} match events ({failures} failed)"
+        )

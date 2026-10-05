@@ -1,5 +1,7 @@
 import base64
+import contextvars
 import logging
+from contextlib import contextmanager
 
 import requests
 from kombu.exceptions import OperationalError
@@ -17,6 +19,38 @@ DEFAULT_FROM = '"Callisto" <noreply@mail.callistocampus.org>'
 
 class TransientMailError(Exception):
     pass
+
+
+class DeliveryFailed(Exception):
+    """Mailgun didn't accept an email sent with deliver()."""
+
+
+_deliver_now = contextvars.ContextVar("callisto_deliver_now", default=False)
+
+
+@contextmanager
+def delivering_synchronously():
+    """
+    Within this block, emails are sent to Mailgun immediately instead of
+    being queued, and a failure raises DeliveryFailed. Used where the caller
+    must know an email went out before recording that it did (match
+    notifications).
+    """
+    token = _deliver_now.set(True)
+    try:
+        yield
+    finally:
+        _deliver_now.reset(token)
+
+
+def deliver(message):
+    """Sends message now; raises DeliveryFailed unless Mailgun accepted it."""
+    try:
+        response = _post_to_mailgun(message)
+    except requests.RequestException as exc:
+        raise DeliveryFailed(repr(exc)) from exc
+    if response.status_code != 200:
+        raise DeliveryFailed(f"mailgun returned {response.status_code}")
 
 
 def build_message(to, subject, html, extra=None, attachments=None):
@@ -72,6 +106,10 @@ def _post_to_mailgun(message):
     bind=True,
     max_retries=5,
     ignore_result=True,  # keep addresses and bodies out of the result backend
+    # acknowledge only after running, and requeue if the worker dies mid-task,
+    # so a crash can't silently drop an email (it may send twice instead)
+    acks_late=True,
+    reject_on_worker_lost=True,
 )
 def send_email(self, message):
     """
@@ -105,6 +143,9 @@ def queue_email(message):
     the broker is unreachable, send the email inline (one attempt) instead of
     failing the request or dropping the notification.
     """
+    if _deliver_now.get():
+        deliver(message)
+        return
     try:
         send_email.delay(message)
     except (OperationalError, OSError) as exc:

@@ -5,11 +5,12 @@ schedule() stores the identifier as a pepper-encrypted MatchingJob and queues
 its id. process_job() runs matching and, in one transaction, marks the reports
 as matched, records a MatchEvent (the outbox) and deletes the job. So a crash
 leaves either the job (rerun it) or the event (finish sending), never neither.
-send_notifications() sends each outstanding step from the event and marks it,
-under a row lock so concurrent senders can't both send.
+send_notifications() delivers each outstanding step synchronously and marks it
+only after Mailgun accepted it, under a row lock so concurrent senders can't
+both send. A failed step stays pending for the retry or the sweeper.
 
-Delivery is at least once: a crash after an email is queued but before its
-step is marked will repeat that step.
+Delivery is at least once: a crash after an email is accepted but before its
+step is marked repeats that step.
 """
 
 import logging
@@ -20,6 +21,7 @@ from django.utils import timezone
 
 from callisto_core.delivery import security
 from callisto_core.delivery.models import MatchEvent, MatchingJob
+from callisto_core.notification import tasks as email_tasks
 from callisto_core.utils.api import MatchingApi, NotificationApi, TenantApi
 
 logger = logging.getLogger(__name__)
@@ -76,6 +78,13 @@ def process_job(job_id: int) -> MatchEvent | None:
 
 
 def send_notifications(event_id: int) -> None:
+    """
+    Delivers each outstanding step synchronously and marks it only once
+    Mailgun has accepted its emails. A failed step stays pending, earlier
+    steps stay marked, and the error is raised after the marks are committed
+    so the task retry or the sweeper resumes from the failed step.
+    """
+    failure = None
     with transaction.atomic():
         event = (
             MatchEvent.objects.select_for_update(skip_locked=True)
@@ -90,39 +99,70 @@ def send_notifications(event_id: int) -> None:
             _complete(event)
             return
 
-        site_settings = _site_settings(event.site_id)
-        if not event.authority_notified:
-            NotificationApi.send_matching_report_to_authority(
-                matches=matches,
-                identifier=_decrypt(bytes(event.encrypted_identifier)),
-                to_addresses=site_settings("COORDINATOR_EMAIL"),
-                public_key=site_settings("COORDINATOR_PUBLIC_KEY"),
-            )
-            _mark(event, "authority_notified")
-        if not event.owners_notified:
-            for match in matches:
-                NotificationApi.send_match_notification(match_report=match)
-            _mark(event, "owners_notified")
-        if not event.callisto_notified:
-            if event.admin_email_template and not site_settings("DEMO_MODE", cast=bool):
-                NotificationApi.slack_notification(
-                    msg="New Callisto Matches (details will be sent via email)",
-                    type="match_confirmation",
-                )
-                NotificationApi.send_with_kwargs(
-                    site_id=event.site_id,
-                    email_template_name=event.admin_email_template,
-                    to_addresses=NotificationApi.ALERT_LIST,
-                    matches=matches,
-                    email_subject="New Callisto Matches",
-                    email_name="match_confirmation_callisto_team",
-                )
-            _mark(event, "callisto_notified")
-        _complete(event)
+        for field, step in _steps(event, matches):
+            if getattr(event, field):
+                continue
+            try:
+                with email_tasks.delivering_synchronously():
+                    step()
+            except Exception as exc:
+                logger.error(f"match event {event.pk}: {field} not delivered: {exc!r}")
+                failure = exc
+                break
+            _mark(event, field)
+        else:
+            _complete(event)
+
+    if failure is not None:
+        raise failure
 
 
-def sweep(older_than: timedelta = STALE_AFTER) -> tuple[int, int]:
-    """Re-run jobs and events a lost message or crashed worker left behind."""
+def _steps(event, matches):
+    site_settings = _site_settings(event.site_id)
+
+    def notify_authority():
+        NotificationApi.send_matching_report_to_authority(
+            matches=matches,
+            identifier=_decrypt(bytes(event.encrypted_identifier)),
+            to_addresses=site_settings("COORDINATOR_EMAIL"),
+            public_key=site_settings("COORDINATOR_PUBLIC_KEY"),
+        )
+
+    def notify_owners():
+        # a failure part way resends to the owners already notified
+        for match in matches:
+            NotificationApi.send_match_notification(match_report=match)
+
+    def notify_callisto():
+        if not event.admin_email_template or site_settings("DEMO_MODE", cast=bool):
+            return
+        NotificationApi.slack_notification(
+            msg="New Callisto Matches (details will be sent via email)",
+            type="match_confirmation",
+        )
+        NotificationApi.send_with_kwargs(
+            site_id=event.site_id,
+            email_template_name=event.admin_email_template,
+            to_addresses=NotificationApi.ALERT_LIST,
+            matches=matches,
+            email_subject="New Callisto Matches",
+            email_name="match_confirmation_callisto_team",
+        )
+
+    return [
+        ("authority_notified", notify_authority),
+        ("owners_notified", notify_owners),
+        ("callisto_notified", notify_callisto),
+    ]
+
+
+def sweep(older_than: timedelta = STALE_AFTER) -> tuple[int, int, int]:
+    """
+    Re-runs jobs and events a lost message or crashed worker left behind.
+    Each item is isolated, so one that keeps failing (bad configuration, an
+    unreadable row) is logged and doesn't stop the rest.
+    Returns (jobs, events, failures).
+    """
     cutoff = timezone.now() - older_than
     job_ids = list(
         MatchingJob.objects.filter(created__lt=cutoff).values_list("pk", flat=True)
@@ -132,11 +172,15 @@ def sweep(older_than: timedelta = STALE_AFTER) -> tuple[int, int]:
             completed__isnull=True, created__lt=cutoff
         ).values_list("pk", flat=True)
     )
-    for job_id in job_ids:
-        process_job(job_id)
-    for event_id in event_ids:
-        send_notifications(event_id)
-    return len(job_ids), len(event_ids)
+    failures = 0
+    for run, ids in [(process_job, job_ids), (send_notifications, event_ids)]:
+        for pk in ids:
+            try:
+                run(pk)
+            except Exception:
+                failures += 1
+                logger.exception(f"sweep: {run.__name__}({pk}) failed")
+    return len(job_ids), len(event_ids), failures
 
 
 def _site_settings(site_id):

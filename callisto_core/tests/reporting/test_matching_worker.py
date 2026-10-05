@@ -19,7 +19,7 @@ IDENTIFIER = "https://www.facebook.com/someone"
 TEMPLATE = "callisto_core/accounts/match_confirmation_callisto_team.html"
 
 
-class MatchingWorkerTest(MatchSetup):
+class MatchingTestBase(MatchSetup):
     def setUp(self):
         super().setUp()
         self.sent = []
@@ -54,6 +54,8 @@ class MatchingWorkerTest(MatchSetup):
             admin_email_template=TEMPLATE,
         )
 
+
+class MatchingWorkerTest(MatchingTestBase):
     # the queue never sees the identifier
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
@@ -172,3 +174,80 @@ class MatchingWorkerTest(MatchSetup):
         self.assertIn("processed 1 matching jobs", out.getvalue())
         self.assert_matches_found_true()
         self.assertIn("match_delivery", self.subjects())
+
+
+class MatchDeliveryTest(MatchingTestBase):
+    """Steps are marked only once Mailgun has accepted their emails."""
+
+    def event(self):
+        self.enter(self.user1)
+        self.enter(self.user2)
+        with patch.object(tasks, "dispatch"):
+            return matching.process_job(self.new_job().pk)
+
+    def failing_for(self, subject):
+        def post(message):
+            if message["subject"] == subject:
+                return SimpleNamespace(status_code=503)
+            self.sent.append(message)
+            return SimpleNamespace(status_code=200)
+
+        return patch.object(email_tasks, "_post_to_mailgun", side_effect=post)
+
+    def test_match_emails_are_delivered_not_queued(self):
+        event = self.event()
+        with patch.object(
+            email_tasks.send_email, "delay", side_effect=AssertionError("queued")
+        ):
+            matching.send_notifications(event.pk)
+        self.assertIn("match_delivery", self.subjects())
+
+    def test_failed_delivery_keeps_the_step_pending(self):
+        event = self.event()
+        with (
+            self.failing_for("match_delivery"),
+            self.assertRaises(email_tasks.DeliveryFailed),
+        ):
+            matching.send_notifications(event.pk)
+        event.refresh_from_db()
+        self.assertFalse(event.authority_notified)
+        self.assertIsNone(event.completed)
+        self.assertNotEqual(bytes(event.encrypted_identifier), b"")  # kept for retry
+
+        matching.send_notifications(event.pk)  # Mailgun is back
+        event.refresh_from_db()
+        self.assertIsNotNone(event.completed)
+        self.assertEqual(self.subjects().count("match_delivery"), 1)
+
+    def test_later_failure_keeps_earlier_steps_marked(self):
+        event = self.event()
+        with (
+            self.failing_for("match_notification"),
+            self.assertRaises(email_tasks.DeliveryFailed),
+        ):
+            matching.send_notifications(event.pk)
+        event.refresh_from_db()
+        self.assertTrue(event.authority_notified)
+        self.assertFalse(event.owners_notified)
+
+        matching.send_notifications(event.pk)
+        # the school's delivery is not repeated
+        self.assertEqual(self.subjects().count("match_delivery"), 1)
+        self.assertEqual(self.subjects().count("match_notification"), 2)
+
+    def test_sweep_continues_past_a_failing_item(self):
+        self.enter(self.user1)
+        self.enter(self.user2)
+        MatchingJob.objects.create(
+            encrypted_identifier=b"not decryptable", site_id=1, admin_email_template=""
+        )
+        good = self.new_job()
+        with self.assertLogs(matching.logger, "ERROR"):
+            jobs, events, failures = matching.sweep(older_than=timedelta(0))
+        self.assertEqual((jobs, failures), (2, 1))
+        self.assertFalse(MatchingJob.objects.filter(pk=good.pk).exists())
+        self.assert_matches_found_true()
+
+    def test_email_task_acknowledges_late(self):
+        self.assertTrue(email_tasks.send_email.acks_late)
+        self.assertTrue(email_tasks.send_email.reject_on_worker_lost)
