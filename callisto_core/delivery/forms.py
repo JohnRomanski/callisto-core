@@ -39,7 +39,7 @@ def _generate_token(form):
     return token.decode("utf-8")
 
 
-class FormViewExtensionMixin(object):
+class FormViewExtensionMixin:
     def __init__(self, *args, **kwargs):
         self.view = kwargs.pop("view")  # TODO: pass in something more specific
         if kwargs.get("matching_validators"):
@@ -60,7 +60,7 @@ class ReportBaseForm(
     )
 
     def __init__(self, *args, **kwargs):
-        super(ReportBaseForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.initial["token"] = _generate_token(self)
         self.initial["uuid"] = str(self.instance.uuid)
 

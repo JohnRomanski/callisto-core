@@ -1,32 +1,26 @@
-from unittest import skip
-
-from selenium.webdriver.support.ui import Select
-
-from django.test import override_settings
-
-from callisto_core.wizard_builder import models, view_helpers
+from callisto_core.wizard_builder import view_helpers
 
 
-class ElementHelper(object):
+class ElementHelper:
     def __init__(self, browser):
         self.browser = browser
 
     @property
     def done(self):
         return self.browser.find_element_by_css_selector(
-            '[value="{}"]'.format(view_helpers.StepsHelper.review_name)
+            f'[value="{view_helpers.StepsHelper.review_name}"]'
         )
 
     @property
     def next(self):
         return self.browser.find_element_by_css_selector(
-            '[value="{}"]'.format(view_helpers.StepsHelper.next_name)
+            f'[value="{view_helpers.StepsHelper.next_name}"]'
         )
 
     @property
     def back(self):
         return self.browser.find_element_by_css_selector(
-            '[value="{}"]'.format(view_helpers.StepsHelper.back_name)
+            f'[value="{view_helpers.StepsHelper.back_name}"]'
         )
 
     @property

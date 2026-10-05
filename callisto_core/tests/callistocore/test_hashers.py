@@ -143,7 +143,7 @@ class Argon2KeyHasherTest(TestCase):
             .decode("utf-8")
             .rstrip("=")
         )
-        expected = "argon2$argon2i$v=19$m=512,t=2,p=2${0}".format(b64_salt)
+        expected = f"argon2$argon2i$v=19$m=512,t=2,p=2${b64_salt}"
         self.assertEqual(prefix, expected)
 
     def test_verify_encoded(self):

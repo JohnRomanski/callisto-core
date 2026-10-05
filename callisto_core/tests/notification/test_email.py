@@ -29,13 +29,13 @@ class TestAsyncEmail(TestCase):
     @skip("TODO: re-enable when celery config is finished")
     def test_mailgun_route(self):
         SendEmail = tasks._SendEmail()
-        task = SendEmail._setUp(self.mailgun_post_route, self.request_params)
+        SendEmail._setUp(self.mailgun_post_route, self.request_params)
         self.assertIn(self.TEST_DOMAIN, SendEmail.mailgun_post_route)
 
     @skip("TODO: re-enable when celery config is finished")
     def test_email_params(self):
         SendEmail = tasks._SendEmail()
-        task = SendEmail._setUp(self.mailgun_post_route, self.request_params)
+        SendEmail._setUp(self.mailgun_post_route, self.request_params)
 
     @skip("TODO: re-enable when celery config is finished")
     def test_send_email_task_submit(self):

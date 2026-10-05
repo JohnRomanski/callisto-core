@@ -1,6 +1,5 @@
 import logging
 import re
-
 from urllib.parse import parse_qs, urlsplit
 
 from django.core.exceptions import ValidationError
@@ -192,7 +191,7 @@ def join_list_with_or(lst):
     return " or ".join([all_but_last, last])
 
 
-class Validators(object):
+class Validators:
     def __init__(self, validator):
         self.validator = validator
 

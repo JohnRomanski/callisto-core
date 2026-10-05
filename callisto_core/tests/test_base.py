@@ -6,17 +6,16 @@ from django.urls import reverse
 
 from callisto_core.accounts.models import Account
 from callisto_core.delivery import models
-from callisto_core.notification.models import EmailNotification
 
 User = get_user_model()
 
 
-class ReportAssertionHelper(object):
+class ReportAssertionHelper:
     def assert_report_exists(self):
         return bool(models.Report.objects.filter(pk=self.report.pk).count())
 
 
-class ReportPostHelper(object):
+class ReportPostHelper:
     valid_statuses = [200, 301, 302]
     username = "demo"
     password = "demo"
@@ -33,7 +32,9 @@ class ReportPostHelper(object):
             in settings.AUTHENTICATION_BACKENDS
         ):
             from hashlib import sha256
+
             import bcrypt
+
             from callisto_core.accounts.auth import index
 
             userhash = sha256(self.username.lower().encode("utf-8")).hexdigest()
@@ -212,7 +213,9 @@ class ReportFlowHelper(TestCase, ReportPostHelper, ReportAssertionHelper):
             in settings.AUTHENTICATION_BACKENDS
         ):
             from hashlib import sha256
+
             import bcrypt
+
             from callisto_core.accounts.auth import index
 
             userhash = sha256(username.lower().encode("utf-8")).hexdigest()

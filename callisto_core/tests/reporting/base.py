@@ -12,7 +12,6 @@ User = get_user_model()
 
 
 class MatchSetup(TestCase):
-
     fixtures = ["callisto_core_notification_data"]
 
     def setUp(self):

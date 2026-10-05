@@ -25,22 +25,19 @@ and should not define:
 import logging
 import re
 
+from django_ratelimit.decorators import ratelimit
 from nacl.exceptions import CryptoError
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
-from django.views import generic as views
 from django.utils.http import url_has_allowed_host_and_scheme
-from django_ratelimit.decorators import ratelimit
+from django.views import generic as views
 
 from callisto_core.evaluation.view_partials import EvalDataMixin
-from callisto_core.reporting import report_delivery
 from callisto_core.wizard_builder import (
-    data_helper,
     view_partials as wizard_builder_partials,
 )
 

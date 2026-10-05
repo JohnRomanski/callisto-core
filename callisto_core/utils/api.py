@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 def log_api_func(api, func):
     func_name = getattr(func, "__name__", str(func))
     if not func_name == "<lambda>":
-        logger.debug("{}.{}".format(api.__class__.__name__, func_name))
+        logger.debug(f"{api.__class__.__name__}.{func_name}")
 
 
 class Api(type):

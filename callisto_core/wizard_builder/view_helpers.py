@@ -9,7 +9,7 @@ from .managers import FormManager
 logger = logging.getLogger(__name__)
 
 
-class StepsHelper(object):
+class StepsHelper:
     done_name = "done"
     review_name = "Review"
     next_name = "Next"
@@ -117,7 +117,7 @@ class StepsHelper(object):
         return post.get(self.wizard_goto_name, None) == step_type
 
 
-class StorageHelper(object):
+class StorageHelper:
     data_manager = SerializedDataHelper
     form_manager = FormManager
 
@@ -188,7 +188,7 @@ class StorageHelper(object):
         self.session.setdefault(self.storage_data_key, {})
 
 
-class WizardViewTemplateHelpers(object):
+class WizardViewTemplateHelpers:
     # TODO: these sould all be context variables instead
 
     @property

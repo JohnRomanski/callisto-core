@@ -1,8 +1,8 @@
 from io import BytesIO
 from unittest import skip
+from unittest.mock import patch
 
 import pypdf
-from unittest.mock import patch
 
 from callisto_core.delivery.models import MatchReport
 from callisto_core.notification.management.commands.user_review_email import (

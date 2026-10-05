@@ -1,5 +1,3 @@
-from unittest import skip
-
 from django.test import TestCase
 
 from .. import managers, view_helpers
@@ -36,7 +34,7 @@ class DataHelperTest(TestCase):
 
     def test_data_non_does_not_raise_error(self):
         form = self.manager.get_form_models()[0]
-        zipped_data = self.data_manager.get_zipped_data(
+        self.data_manager.get_zipped_data(
             data={"question_1": None}, forms=[form.serialized]
         )
 

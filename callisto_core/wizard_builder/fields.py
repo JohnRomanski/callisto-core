@@ -32,7 +32,7 @@ class ConditionalMultipleChoiceField(ConditionalFieldMixin, forms.MultipleChoice
     pass
 
 
-class QuestionField(object):
+class QuestionField:
     """
     The functions on this class correspond to the types of questions
     you can use in the form wizard

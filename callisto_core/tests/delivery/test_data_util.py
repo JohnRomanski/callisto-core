@@ -1,4 +1,4 @@
-from pprint import pprint
+import json
 
 from django.test import TestCase
 
@@ -22,7 +22,6 @@ class RecordIntegrationTest(TestCase):
 
 class DataTransformationTest(TestCase):
     def assertListItemsUnique(self, items):
-        items_set = set(items)
         self.assertEqual(len(set(items)), len(items))
 
     def test_single_line_text_form(self):
@@ -60,11 +59,26 @@ class DataTransformationTest(TestCase):
         self.assertEqual(data, record_data.EXPECTED_SINGLE_RADIO)
 
     def test_formset(self):
+        # EXPECTED_FORMSET predates per-perpetrator field ids (69e59dee), so
+        # compare questions and answers rather than ids
         data = RecordDataUtil.transform_if_old_format(record_data.EXAMPLE_FORMSET)
-        for index, transformed_page in enumerate(data["wizard_form_serialized"]):
-            expected_page = record_data.EXPECTED_FORMSET["wizard_form_serialized"][
-                index
-            ]
+        pages = data["wizard_form_serialized"]
+        expected = record_data.EXPECTED_FORMSET
+        self.assertEqual(len(pages), len(expected["wizard_form_serialized"]))
+
+        field_ids = set()
+        for page, expected_page in zip(pages, expected["wizard_form_serialized"]):
+            self.assertEqual(
+                [q["question_text"] for q in page],
+                [q["question_text"] for q in expected_page],
+            )
+            field_ids.update(q["field_id"] for q in page)
+
+        self.assertLessEqual(set(data["data"]), field_ids)
+        self.assertCountEqual(
+            [json.dumps(v) for v in data["data"].values()],
+            [json.dumps(v) for v in expected["data"].values()],
+        )
 
     def test_full_data_first_page_not_empty(self):
         data = RecordDataUtil.transform_if_old_format(record_data.EXAMPLE_FULL_DATASET)

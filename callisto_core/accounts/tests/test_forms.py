@@ -4,7 +4,6 @@ from django.test.utils import override_settings
 
 from callisto_core.accounts.forms import ReportingVerificationEmailForm
 from callisto_core.tests.test_base import ReportFlowHelper as ReportFlowTestCase
-from callisto_core.utils.api import TenantApi
 
 User = get_user_model()
 

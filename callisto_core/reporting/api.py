@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class CallistoCoreMatchingApi(object):
+class CallistoCoreMatchingApi:
     @property
     def match_reports(_):
         from callisto_core.delivery.models import MatchReport

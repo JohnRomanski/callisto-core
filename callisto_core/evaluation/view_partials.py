@@ -1,7 +1,7 @@
 from callisto_core.evaluation.models import EvalRow
 
 
-class EvalDataMixin(object):
+class EvalDataMixin:
     def dispatch(self, request, *args, **kwargs):
         eval_action_type = getattr(self, "EVAL_ACTION_TYPE", None)
         if eval_action_type:

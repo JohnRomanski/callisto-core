@@ -1,7 +1,7 @@
 from .view_helpers import EncryptedReportStorageHelper
 
 
-class RecordDataUtil(object):
+class RecordDataUtil:
     answer_key = EncryptedReportStorageHelper.storage_data_key
     form_key = EncryptedReportStorageHelper.storage_form_key
 

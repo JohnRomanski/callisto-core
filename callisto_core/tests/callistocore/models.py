@@ -55,7 +55,7 @@ def _legacy_decrypt_report(salt, key, encrypted):
     return decrypted.decode("utf-8")
 
 
-class LegacyReportData(object):
+class LegacyReportData:
     """The full text of a reported incident.
 
     Uses the old encryption scheme before support for new hashers & increased iterations, for testing that old records
@@ -82,7 +82,7 @@ class LegacyReportData(object):
         )
 
 
-class LegacyMatchReportData(object):
+class LegacyMatchReportData:
     """A report that indicates the user wants to submit if a match is found. A single report can have multiple
     MatchReports--one per perpetrator.
 

@@ -9,7 +9,7 @@ from . import forms, mocks, models
 logger = logging.getLogger(__name__)
 
 
-class FormManager(object):
+class FormManager:
     @classmethod
     def get_serialized_forms(cls, site_id=1):
         return [form.serialized for form in cls.get_form_models(site_id=site_id)]

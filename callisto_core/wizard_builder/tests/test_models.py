@@ -1,5 +1,3 @@
-import json
-
 from django import forms
 from django.test import TestCase
 
@@ -71,7 +69,7 @@ class SingleLineTextModelTestCase(ItemTestCase):
 
 class RadioButtonTestCase(ItemTestCase):
     def setUp(self):
-        super(RadioButtonTestCase, self).setUp()
+        super().setUp()
         self.question = RadioButton.objects.create(
             text="this is a radio button question"
         )
@@ -99,7 +97,6 @@ class RadioButtonTestCase(ItemTestCase):
         self.assertIsInstance(field.widget, forms.Select)
 
     def test_choices_serialized(self):
-        object_ids = [choice.pk for choice in self.question.choice_set.all()]
         serialized_q = self.question.serialized
         self.assertEqual(type(serialized_q["choices"]), list)
         self.assertTrue(len(serialized_q["choices"]))

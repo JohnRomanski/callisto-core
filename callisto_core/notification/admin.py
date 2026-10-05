@@ -6,7 +6,6 @@ from .models import EmailNotification
 
 
 class EmailNotificationAdmin(admin.ModelAdmin):
-
     # UX change, doesn't change functionality any
     formfield_overrides = {models.ManyToManyField: {"widget": CheckboxSelectMultiple}}
 

@@ -1,7 +1,6 @@
 import copy
 import logging
 import os
-import typing
 
 import requests
 from reportlab.lib.enums import TA_CENTER
@@ -28,8 +27,7 @@ from callisto_core.utils.api import TenantApi
 logger = logging.getLogger(__name__)
 
 
-class CallistoCoreNotificationApi(object):
-
+class CallistoCoreNotificationApi:
     report_filename = "callisto_record_{0}.pdf.gpg"
     report_title = "Callisto Record"
     logo_path = "../../assets/callisto_logo.png"
@@ -63,7 +61,7 @@ class CallistoCoreNotificationApi(object):
 
     @property
     def from_email(self):
-        return f'"Callisto" <noreply@mail.callistocampus.org>'
+        return '"Callisto" <noreply@mail.callistocampus.org>'
 
     @property
     def in_demo_mode(self):
@@ -124,7 +122,7 @@ class CallistoCoreNotificationApi(object):
         self.send()
 
     def send_confirmation(
-        self, email_type: str, to_addresses: typing.List[str], site_id=0, **kwargs
+        self, email_type: str, to_addresses: list[str], site_id=0, **kwargs
     ) -> None:
         """
         Send a matching or submission confirmation email to the user
@@ -146,7 +144,7 @@ class CallistoCoreNotificationApi(object):
     def send_report_to_authority(
         self,
         sent_report,
-        to_addresses: typing.List[str],
+        to_addresses: list[str],
         report_data: dict,
         public_key: str,
         site_id=0,
@@ -205,7 +203,7 @@ class CallistoCoreNotificationApi(object):
         self,
         matches: list,
         identifier: str,
-        to_addresses: typing.List[str],
+        to_addresses: list[str],
         public_key: str,
     ):
         """
@@ -252,7 +250,7 @@ class CallistoCoreNotificationApi(object):
         self,
         reports: list,
         matches: list,
-        to_addresses: typing.List[str],
+        to_addresses: list[str],
         public_key: str,
         site_id: int,
     ):

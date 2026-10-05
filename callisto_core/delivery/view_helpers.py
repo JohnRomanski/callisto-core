@@ -29,7 +29,7 @@ class ReportStepsHelper(wizard_builder_helpers.StepsHelper):
         )
 
 
-class ReportStorageHelper(object):
+class ReportStorageHelper:
     def __init__(self, view):
         self.view = view  # TODO: scope down input
 
@@ -88,7 +88,6 @@ class _LegacyReportStorageHelper(ReportStorageHelper):
 class EncryptedReportStorageHelper(
     wizard_builder_helpers.StorageHelper, _LegacyReportStorageHelper
 ):
-
     # WARNING: do not change! record data is keyed on this value
     storage_data_key = "data"
 

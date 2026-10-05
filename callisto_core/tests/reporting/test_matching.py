@@ -1,13 +1,9 @@
-import json
 from unittest import skip
-
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.core.management import call_command
 from django.utils import timezone
 
-from callisto_core.delivery.models import MatchReport
 from callisto_core.tests.reporting.base import MatchSetup
 from callisto_core.tests.test_base import ReportPostHelper
 from callisto_core.tests.utils.api import CustomNotificationApi
