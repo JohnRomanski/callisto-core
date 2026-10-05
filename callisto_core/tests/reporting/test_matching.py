@@ -1,13 +1,11 @@
 import json
 import threading
 from types import SimpleNamespace
-from unittest import skip
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import TransactionTestCase
-from django.utils import timezone
 
 from callisto_core.delivery.models import MatchReport, Report
 from callisto_core.notification import tasks
@@ -155,46 +153,52 @@ class ConcurrentMatchingTest(TransactionTestCase):
         self.assertTrue(all(Report.objects.values_list("match_found", flat=True)))
 
 
-class MatchNotificationTest(MatchSetup):
-    @skip("notification mechanics moved to view partials")
-    def test_basic_email_case(self):
-        with patch.object(CustomNotificationApi, "log_action") as api_logging:
-            self.create_match(self.user1, "test1")
-            self.assertEqual(api_logging.call_count, 0)
-            self.create_match(self.user2, "test1")
-            self.assert_matches_found_true()
-            # 2 emails for the 2 users
-            # 1 email for the reporting authority
-            self.assertEqual(api_logging.call_count, 3)
+class MatchNotificationTest(MatchSetup, ReportPostHelper):
+    """Who is emailed when reports enter matching, through the real views."""
 
-    @skip("notification mechanics moved to view partials")
-    def test_multiple_email_case(self):
-        with patch.object(CustomNotificationApi, "log_action") as api_logging:
-            self.create_match(self.user1, "test1")  # 0
-            self.create_match(self.user2, "test1")  # 3 emails
-            self.create_match(self.user3, "test1")  # 7 emails
-            self.create_match(self.user4, "test1")  # 12 emails
-            self.assert_matches_found_true()
-            self.assertNotEqual(api_logging.call_count, 7)  # old behavior
-            self.assertEqual(api_logging.call_count, 12)  # new behavior
+    fixtures = ["wizard_builder_data", "callisto_core_notification_data"]
+    identifier = "https://www.facebook.com/callistoorg"
 
-    @skip("notification mechanics moved to view partials")
-    def test_users_are_deduplicated(self):
-        with patch.object(CustomNotificationApi, "log_action") as api_logging:
-            self.create_match(self.user1, "test1")
-            self.create_match(self.user1, "test1")
-            self.assertFalse(api_logging.called)
-            self.create_match(self.user2, "test1")
-            self.assert_matches_found_true()
-            self.assertEqual(api_logging.call_count, 3)
+    def setUp(self):
+        super().setUp()
+        self.sent = []
 
-    @skip("notification mechanics moved to view partials")
-    def test_does_notify_on_reported_reports(self):
-        with patch.object(CustomNotificationApi, "log_action") as api_logging:
-            self.create_match(self.user1, "test1")
-            match_report = self.create_match(self.user2, "test1", alert=False)
-            match_report.report.submitted_to_school = timezone.now()
-            match_report.report.save()
-            MatchingApi.find_matches("test1")
-            self.assertNotEqual(api_logging.call_count, 2)  # old behavior
-            self.assertEqual(api_logging.call_count, 3)  # new behavior
+        def capture(message):
+            self.sent.append(message)
+            return SimpleNamespace(status_code=200)
+
+        patcher = patch.object(tasks, "_post_to_mailgun", side_effect=capture)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def submit(self, user):
+        """user creates a report and enters it into matching; returns subjects"""
+        self.passphrase = f"{user.username} secret"
+        self.client.force_login(user)
+        self.client_post_report_creation()
+        before = len(self.sent)
+        self.client_post_matching_enter(self.identifier)
+        return [message["subject"] for message in self.sent[before:]]
+
+    def test_first_report_only_confirms_entry(self):
+        self.assertEqual(self.submit(self.user1), ["match_confirmation"])
+
+    def test_match_delivers_to_school_and_notifies_both_reporters(self):
+        self.submit(self.user1)
+        subjects = self.submit(self.user2)
+        self.assertEqual(subjects.count("match_delivery"), 1)
+        self.assertEqual(subjects.count("match_notification"), 2)
+        self.assert_matches_found_true()
+
+    def test_same_reporter_twice_is_not_a_match(self):
+        self.submit(self.user1)
+        self.assertEqual(self.submit(self.user1), ["match_confirmation"])
+
+    def test_later_reporters_are_delivered_and_only_they_are_notified(self):
+        self.submit(self.user1)
+        self.submit(self.user2)
+        for user in [self.user3, self.user4]:
+            with self.subTest(user=user.username):
+                subjects = self.submit(user)
+                self.assertEqual(subjects.count("match_delivery"), 1)
+                self.assertEqual(subjects.count("match_notification"), 1)
