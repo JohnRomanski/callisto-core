@@ -6,4 +6,7 @@ class DeliveryConfig(AppConfig):
     default_auto_field = "django.db.models.AutoField"
 
     def ready(self):
-        from . import passphrase_storage  # noqa: F401  (connects logout cleanup)
+        from . import (  # noqa: F401
+            checks,  # registers deploy checks
+            passphrase_storage,  # connects logout cleanup
+        )
