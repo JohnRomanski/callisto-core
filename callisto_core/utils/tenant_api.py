@@ -1,17 +1,17 @@
 from copy import copy
 
 
-def strtobool(value: str) -> int:
+def strtobool(value: str) -> bool:
     """Replacement for distutils.util.strtobool, removed in Python 3.12"""
     value = value.lower()
     if value in ("y", "yes", "t", "true", "on", "1"):
-        return 1
+        return True
     elif value in ("n", "no", "f", "false", "off", "0"):
-        return 0
+        return False
     raise ValueError(f"invalid truth value {value!r}")
 
 
-def cast_string_to_type(value: str, cast: [str, bool, int]) -> [str, bool, int]:
+def cast_string_to_type(value: str, cast: type[str | bool | int]) -> str | bool | int:
     if cast is str:
         return value
     elif cast is bool:

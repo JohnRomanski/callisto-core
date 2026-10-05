@@ -176,25 +176,18 @@ class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase
         url = reverse("report_update", kwargs={"uuid": self.report.uuid, "step": 0})
         self.browser.get(self.live_server_url + url)
 
-    def tearDown(self):
-        if self._test_has_failed():
-            if not os.path.exists(SCREEN_DUMP_LOCATION):
-                os.makedirs(SCREEN_DUMP_LOCATION)
-            for ix, handle in enumerate(self.browser.window_handles):
-                self._windowid = ix
-                self.browser.switch_to.window(handle)
-                self._take_screenshot()
-                self._dump_html()
-        super().tearDown()
-
-    def _test_has_failed(self):
-        try:
-            for method, error in self._outcome.errors:
-                if error:
-                    return True
-        except AttributeError:
-            pass  # not all python versions has access to self._outcome
-        return False
+    def dump_browser_state(self):
+        """
+        Screenshot and HTML of every window. conftest.py calls this when a
+        test fails, while the class's browser is still open.
+        """
+        if not os.path.exists(SCREEN_DUMP_LOCATION):
+            os.makedirs(SCREEN_DUMP_LOCATION)
+        for ix, handle in enumerate(self.browser.window_handles):
+            self._windowid = ix
+            self.browser.switch_to.window(handle)
+            self._take_screenshot()
+            self._dump_html()
 
     def _take_screenshot(self):
         filename = self._get_filename() + ".png"
