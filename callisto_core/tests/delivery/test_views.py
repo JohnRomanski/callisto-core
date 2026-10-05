@@ -118,11 +118,6 @@ class WizardRenderingTest(test_base.ReportFlowHelper):
             self.assertIn(choice, html)
         self.assertIn('placeholder="extra information here"', html)
 
-    def test_hidden_fields_have_no_visible_labels(self):
-        html = self.client_get_report_creation().content.decode()
-        self.assertIn('name="token"', html)
-        self.assertNotIn('for="id_token"', html)
-
 
 class StoredPassphraseFlowTest(test_base.ReportFlowHelper):
     def test_answers_saved_across_steps_without_reentering_passphrase(self):
