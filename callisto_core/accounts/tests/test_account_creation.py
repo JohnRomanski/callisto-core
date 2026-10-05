@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from kombu.exceptions import OperationalError
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.urls import reverse
@@ -85,6 +87,19 @@ class AccountEmailTest(ReportFlowTestCase):
         self.assertEqual(post.call_count, 1)
         message = post.call_args.args[0]
         self.assertEqual(message["to"], ["tech@projectcallisto.org"])
+
+    def test_account_creation_survives_broker_outage(self):
+        with (
+            patch.object(
+                tasks.send_email, "delay", side_effect=OperationalError("down")
+            ),
+            patch.object(
+                tasks, "_post_to_mailgun", return_value=SimpleNamespace(status_code=200)
+            ) as post,
+        ):
+            BulkAccount.objects.create(emails="tech@projectcallisto.org", site_id=2)
+        self.assertEqual(post.call_count, 1)
+        self.assertTrue(Account.objects.filter(school_email="tech@projectcallisto.org"))
 
     def test_can_activate_account(self):
         BulkAccount.objects.create(emails="tech@projectcallisto.org", site_id=2)

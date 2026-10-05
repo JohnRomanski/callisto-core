@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import requests
 from celery.exceptions import Retry
+from kombu.exceptions import OperationalError
 
 from django.test import TestCase, override_settings
 
@@ -97,3 +98,24 @@ class SendEmailTaskTest(TestCase):
     def test_attachment_round_trips_base64(self):
         content = self.message()["attachments"][0]["content"]
         self.assertEqual(base64.b64decode(content), b"-----BEGIN PGP MESSAGE-----")
+
+    def test_broker_outage_sends_inline_instead_of_failing(self):
+        with (
+            patch.object(
+                tasks.send_email, "delay", side_effect=OperationalError("down")
+            ),
+            patch.object(tasks.requests, "post", return_value=response(200)) as post,
+            self.assertLogs(tasks.logger, "ERROR"),
+        ):
+            tasks.queue_email(self.message())
+        self.assertEqual(post.call_count, 1)
+
+    def test_broker_and_mailgun_outage_still_does_not_raise(self):
+        with (
+            patch.object(
+                tasks.send_email, "delay", side_effect=OperationalError("down")
+            ),
+            patch.object(tasks.requests, "post", side_effect=requests.ConnectionError),
+            self.assertLogs(tasks.logger, "ERROR"),
+        ):
+            tasks.queue_email(self.message())

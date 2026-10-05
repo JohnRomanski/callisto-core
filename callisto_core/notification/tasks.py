@@ -2,6 +2,7 @@ import base64
 import logging
 
 import requests
+from kombu.exceptions import OperationalError
 
 from django.conf import settings
 
@@ -91,3 +92,16 @@ def send_email(self, message):
         # no message details: they include addresses and may include links
         logger.error(f"mailgun rejected email: status_code={response.status_code}")
     return response.status_code
+
+
+def queue_email(message):
+    """
+    Queues send_email. Publishing happens inside the user's request, so if
+    the broker is unreachable, send the email inline (one attempt) instead of
+    failing the request or dropping the notification.
+    """
+    try:
+        send_email.delay(message)
+    except (OperationalError, OSError) as exc:
+        logger.error(f"email broker unavailable, sending inline: {exc!r}")
+        send_email.apply(args=[message])

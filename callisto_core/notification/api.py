@@ -398,7 +398,7 @@ class CallistoCoreNotificationApi:
             extra=self._extra_data(),
             attachments=attachments,
         )
-        tasks.send_email.delay(message)
+        tasks.queue_email(message)
 
     def log_action(self):
         logger.info(

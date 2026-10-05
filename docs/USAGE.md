@@ -125,7 +125,9 @@ a single attempt so an outage can't hold the request open. To send it from a
 worker, with retries, configure a broker and run
 `celery -A callisto_core.celeryconfig.celery worker`. Queued messages contain
 recipients, bodies and account activation links, so the broker must be
-private and use TLS.
+private and use TLS. If the broker can't be reached when an email is queued,
+the email is sent inside the request instead (one attempt), so a broker
+outage never fails the request.
 
 ### Logout
 
