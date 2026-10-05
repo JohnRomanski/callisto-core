@@ -63,7 +63,7 @@ class Report(models.Model):
     def decrypt_record(
         self,
         passphrase: str,  # aka secret key aka passphrase
-    ) -> dict or str:
+    ) -> dict | str:
         """decrypts record text from record.encrypted, with the passphrase"""
         if not (self.encode_prefix or self.salt):
             key = self.encryption_setup(passphrase)
@@ -102,7 +102,7 @@ class Report(models.Model):
 
     def _return_or_transform(
         self,
-        data: list or dict,
+        data: list | dict,
         key: str,  # aka secret key aka passphrase
     ) -> dict:
         """
@@ -182,7 +182,7 @@ class MatchReport(models.Model):
     def get_match(
         self,
         identifier: str,  # MatchReport is encrypted with the identifier
-    ) -> str or None:
+    ) -> str | None:
         """
         Checks if the given identifier triggers a match on this report.
         Returns report text if so.

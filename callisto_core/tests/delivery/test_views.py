@@ -1,10 +1,12 @@
 import json
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.urls import reverse
 
 from callisto_core.delivery import forms, models, passphrase_storage, view_partials
 from callisto_core.delivery.models import StoredPassphrase
+from callisto_core.notification import tasks
 from callisto_core.tests import test_base
 from callisto_core.wizard_builder.forms import PageForm
 
@@ -224,9 +226,15 @@ class ReportMetaFlowTest(test_base.ReportFlowHelper):
         self.client_post_report_prep()
         self.assertEqual(self.report_contact_email, self.report.contact_email)
 
-    def test_match_sends_report_immediately(self):
+    def test_matching_entry_confirms_to_contact_email(self):
         self.client_post_report_creation()
         self.client_post_report_prep()
-        self.client_post_matching_enter()
-        # TODO: new email assertions
-        # self.match_report_email_assertions()
+        with patch.object(
+            tasks, "_post_to_mailgun", return_value=SimpleNamespace(status_code=200)
+        ) as post:
+            self.client_post_matching_enter()
+        messages = [call.args[0] for call in post.call_args_list]
+        self.assertEqual(
+            [(m["subject"], m["to"]) for m in messages],
+            [("match_confirmation", [self.report_contact_email])],
+        )

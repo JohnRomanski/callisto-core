@@ -26,3 +26,17 @@ def cheap_argon2id(settings):
     """Real Argon2id, with a small cost so the suite stays fast."""
     settings.ARGON2ID_MEMORY_COST = 1024
     settings.ARGON2ID_TIME_COST = 1
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Save browser screenshots and HTML for failed selenium tests."""
+    outcome = yield
+    report = outcome.get_result()
+    if report.when == "call" and report.failed:
+        dump = getattr(getattr(item, "instance", None), "dump_browser_state", None)
+        if dump:
+            try:
+                dump()
+            except Exception as exc:  # never hide the original failure
+                print(f"could not save browser state: {exc!r}")
