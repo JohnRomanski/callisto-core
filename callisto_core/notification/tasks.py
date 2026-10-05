@@ -24,8 +24,13 @@ def build_message(to, subject, html, extra=None, attachments=None):
     A JSON-safe email for send_email.delay(). It deliberately holds no
     credentials: the task reads those from settings when it runs.
 
+    to: an address string, or a list of addresses
     attachments: [(filename, bytes or str)]
     """
+    if isinstance(to, str):
+        # callers pass a single address string or a list; list("a@b") would
+        # split the address into characters
+        to = [to]
     return {
         "to": list(to),
         "subject": subject,
