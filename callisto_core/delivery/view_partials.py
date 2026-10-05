@@ -24,7 +24,6 @@ and should not define:
 import logging
 import re
 
-import ratelimit.mixins
 from nacl.exceptions import CryptoError
 
 from django.conf import settings
@@ -32,8 +31,10 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
+from django.utils.decorators import method_decorator
 from django.views import generic as views
-from django.utils.http import is_safe_url
+from django.utils.http import url_has_allowed_host_and_scheme
+from django_ratelimit.decorators import ratelimit
 
 from callisto_core.evaluation.view_partials import EvalDataMixin
 from callisto_core.reporting import report_delivery
@@ -114,13 +115,16 @@ class _ReportDetailPartial(ReportBasePartial, views.detail.DetailView):
         return self.get_object()
 
 
-class _ReportLimitedDetailPartial(
-    _ReportDetailPartial, ratelimit.mixins.RatelimitMixin
-):
-    ratelimit_key = "user"
-    ratelimit_rate = settings.DECRYPT_THROTTLE_RATE
+class _ReportLimitedDetailPartial(_ReportDetailPartial):
+    # kept for subclass compatibility; the limit is applied in _ReportAccessPartial
+    pass
 
 
+# throttle wraps the passphrase check so failed attempts are counted
+@method_decorator(
+    ratelimit(key="user", rate=settings.DECRYPT_THROTTLE_RATE, block=True),
+    name="dispatch",
+)
 class _ReportAccessPartial(_ReportLimitedDetailPartial):
     invalid_access_key_message = "Invalid key in access request"
     invalid_access_user_message = "Invalid user in access request"
@@ -141,7 +145,7 @@ class _ReportAccessPartial(_ReportLimitedDetailPartial):
                 self.storage.report.decrypt_record(passphrase)
                 return True
             except CryptoError:
-                logger.warn(self.invalid_access_key_message)
+                logger.warning(self.invalid_access_key_message)
                 return False
         else:
             logger.info(self.invalid_access_no_key_message)
@@ -160,7 +164,9 @@ class _ReportAccessPartial(_ReportLimitedDetailPartial):
         next_url = None
         if "next" in request.GET:
             if re.search(r"^/[\W/-]*", request.GET["next"]):
-                if is_safe_url(request.GET["next"]):
+                if url_has_allowed_host_and_scheme(
+                    request.GET["next"], allowed_hosts=None
+                ):
                     next_url = request.GET["next"]
         return next_url
 
@@ -192,7 +198,7 @@ class _ReportAccessPartial(_ReportLimitedDetailPartial):
 
     def _check_report_owner(self):
         if not self.report.owner == self.request.user:
-            logger.warn(self.invalid_access_user_message)
+            logger.warning(self.invalid_access_user_message)
             raise PermissionDenied
 
 
