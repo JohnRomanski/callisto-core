@@ -3,13 +3,14 @@ import os
 import time
 import unittest
 from datetime import datetime
-from distutils.util import strtobool
 from unittest import skip
 from urllib.parse import urlparse
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
+
+from callisto_core.utils.tenant_api import strtobool
 from selenium.webdriver.support.wait import WebDriverWait
 
 from django.contrib.auth import get_user_model

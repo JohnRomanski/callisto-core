@@ -69,11 +69,11 @@ class PBKDF2KeyHasherTest(TestCase):
         self.hasher = hashers.PBKDF2KeyHasher()
 
     def test_encode_requires_key_and_salt(self):
-        with self.assertRaises(AssertionError):
-            self.hasher.encode(None, None)
-            self.hasher.encode("key", None)
-            self.hasher.encode(None, "salt")
-            self.hasher.encode("key", "salt$")
+        # validation is inherited from django's PBKDF2PasswordHasher
+        for key, salt in [(None, None), ("key", None), (None, "salt"), ("key", "salt$")]:
+            with self.subTest(key=key, salt=salt):
+                with self.assertRaises((TypeError, ValueError)):
+                    self.hasher.encode(key, salt)
 
     def test_encode_returns_correct_prefix(self):
         encoded = self.hasher.encode(
@@ -120,11 +120,10 @@ class Argon2KeyHasherTest(TestCase):
         self.hasher = hashers.Argon2KeyHasher()
 
     def test_encode_requires_key_and_salt(self):
-        with self.assertRaises(AssertionError):
-            self.hasher.encode(None, None)
-            self.hasher.encode("key", None)
-            self.hasher.encode(None, "salt")
-            self.hasher.encode("key", "salt$")
+        for key, salt in [(None, None), ("key", None), (None, "salt"), ("key", "salt$")]:
+            with self.subTest(key=key, salt=salt):
+                with self.assertRaises(AssertionError):
+                    self.hasher.encode(key, salt)
 
     def test_encode_returns_correct_prefix(self):
         encoded = self.hasher.encode("this is definitely a key", "also here is a salt")

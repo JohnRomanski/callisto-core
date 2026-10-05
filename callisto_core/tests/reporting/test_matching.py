@@ -1,7 +1,7 @@
 import json
 from unittest import skip
 
-from mock import call, patch
+from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command

@@ -23,7 +23,7 @@ and should not define:
 from django.contrib.auth import login, views as auth_views
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
-from django.utils.http import is_safe_url
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import edit as edit_views
 
 from callisto_core.utils.api import TenantApi
@@ -43,7 +43,9 @@ class SignupPartial(edit_views.CreateView):
 
     def get_success_url(self):
         next_page = self.request.GET.get("next", None)
-        if next_page and is_safe_url(next_page, self.request.get_host()):
+        if next_page and url_has_allowed_host_and_scheme(
+            next_page, allowed_hosts={self.request.get_host()}
+        ):
             return next_page
         else:
             return super().get_success_url()

@@ -89,7 +89,7 @@ class Report(models.Model):
         if self.salt:
             self.salt = None
         hasher = hashers.get_hasher()
-        encoded = hasher.encode(passphrase, get_random_string())
+        encoded = hasher.encode(passphrase, get_random_string(12))
         self.encode_prefix, key = hasher.split_encoded(encoded)
         self.save()
         return key
@@ -166,7 +166,7 @@ class MatchReport(models.Model):
         if self.salt:
             self.salt = None
         hasher = hashers.get_hasher()
-        salt = get_random_string()
+        salt = get_random_string(12)
 
         encoded = hasher.encode(identifier, salt)
         self.encode_prefix, stretched_identifier = hasher.split_encoded(encoded)

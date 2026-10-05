@@ -2,7 +2,7 @@ import json
 from unittest import skip
 
 from django_migration_testcase import MigrationTest
-from mock import ANY, patch
+from unittest.mock import ANY, patch
 
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
@@ -107,7 +107,7 @@ class MatchReportMigrationTest(MigrationTest):
             email="email1@example.com",
             phone="555-555-1212",
         )
-        salt = get_random_string()
+        salt = get_random_string(12)
         encrypted_report = security.pepper(
             _legacy_encrypt_report(
                 salt, identifier, json.dumps(report_content.__dict__)

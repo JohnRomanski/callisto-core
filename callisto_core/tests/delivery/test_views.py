@@ -138,7 +138,7 @@ class ReportMetaFlowTest(test_base.ReportFlowHelper):
         self.client_post_report_creation()
         response = self.client_post_report_pdf_view()
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(
+        self.assertEqual(
             response.get("Content-Disposition"), 'inline; filename="report.pdf"'
         )
 
