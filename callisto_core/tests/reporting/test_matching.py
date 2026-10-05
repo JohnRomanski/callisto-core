@@ -177,33 +177,63 @@ class MatchNotificationTest(MatchSetup, ReportPostHelper):
         self.addCleanup(patcher.stop)
 
     def submit(self, user):
-        """user creates a report and enters it into matching; returns subjects"""
+        """
+        user creates a report with their own contact email and enters it into
+        matching; returns the (subject, recipients) of each email sent
+        """
         self.passphrase = f"{user.username} secret"
         self.client.force_login(user)
         self.client_post_report_creation()
+        self.report.contact_email = self.contact(user)
+        self.report.save()
         before = len(self.sent)
         self.client_post_matching_enter(self.identifier)
-        return [message["subject"] for message in self.sent[before:]]
+        return [(message["subject"], message["to"]) for message in self.sent[before:]]
+
+    def contact(self, user):
+        return f"{user.username}@example.edu"
+
+    def recipients(self, emails, subject):
+        return sorted(
+            to for subj, recipients in emails if subj == subject for to in recipients
+        )
 
     def test_first_report_only_confirms_entry(self):
-        self.assertEqual(self.submit(self.user1), ["match_confirmation"])
+        self.assertEqual(
+            self.submit(self.user1),
+            [("match_confirmation", [self.contact(self.user1)])],
+        )
 
     def test_match_delivers_to_school_and_notifies_both_reporters(self):
         self.submit(self.user1)
-        subjects = self.submit(self.user2)
-        self.assertEqual(subjects.count("match_delivery"), 1)
-        self.assertEqual(subjects.count("match_notification"), 2)
+        emails = self.submit(self.user2)
+        self.assertEqual(
+            self.recipients(emails, "match_delivery"),
+            ["COORDINATOR_EMAIL@example.com"],
+        )
+        self.assertEqual(
+            self.recipients(emails, "match_notification"),
+            sorted([self.contact(self.user1), self.contact(self.user2)]),
+        )
         self.assert_matches_found_true()
 
     def test_same_reporter_twice_is_not_a_match(self):
         self.submit(self.user1)
-        self.assertEqual(self.submit(self.user1), ["match_confirmation"])
+        self.assertEqual(
+            self.submit(self.user1),
+            [("match_confirmation", [self.contact(self.user1)])],
+        )
 
     def test_later_reporters_are_delivered_and_only_they_are_notified(self):
         self.submit(self.user1)
         self.submit(self.user2)
         for user in [self.user3, self.user4]:
             with self.subTest(user=user.username):
-                subjects = self.submit(user)
-                self.assertEqual(subjects.count("match_delivery"), 1)
-                self.assertEqual(subjects.count("match_notification"), 1)
+                emails = self.submit(user)
+                self.assertEqual(
+                    self.recipients(emails, "match_delivery"),
+                    ["COORDINATOR_EMAIL@example.com"],
+                )
+                self.assertEqual(
+                    self.recipients(emails, "match_notification"), [self.contact(user)]
+                )
