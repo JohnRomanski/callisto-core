@@ -12,6 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.urls import include, re_path, reverse_lazy
 from django.views.generic import base as django_views
 
+from callisto_core.accounts import views as account_views
+
 urlpatterns = [
     # includes
     re_path(r"^account/", include("callisto_core.accounts.urls")),
@@ -23,9 +25,8 @@ urlpatterns = [
     re_path(
         r"^signup/$", django_views.RedirectView.as_view(url=reverse_lazy("signup"))
     ),
-    re_path(
-        r"^logout/$", django_views.RedirectView.as_view(url=reverse_lazy("logout"))
-    ),
+    # LogoutView only accepts POST; a redirect would turn it into a GET
+    re_path(r"^logout/$", account_views.LogoutView.as_view()),
     re_path(r"^login/$", django_views.RedirectView.as_view(url=reverse_lazy("login"))),
     # admin
     re_path(r"^nested_admin/", include("nested_admin.urls")),

@@ -12,5 +12,6 @@ pytest-watch
 dj-database-url>=2.3
 gunicorn>=23.0
 whitenoise>=6.8
+redis>=5.2
 
 -r test.txt

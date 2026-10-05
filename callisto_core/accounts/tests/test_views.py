@@ -217,7 +217,7 @@ class StudentVerificationTest(AccountsTestCase):
     def test_verification_get_confirmation(self):
         self.user.account.refresh_from_db()
         self.assertFalse(self.user.account.is_verified)
-        uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk)).decode("utf-8")
+        uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk))
         token = StudentVerificationTokenGenerator().make_token(self.user)
         self.client.get(
             reverse(
@@ -227,3 +227,17 @@ class StudentVerificationTest(AccountsTestCase):
         )
         self.user.account.refresh_from_db()
         self.assertTrue(self.user.account.is_verified)
+
+
+class LogoutTest(ReportFlowTestCase):
+    def test_post_logs_out(self):
+        for url in [reverse("logout"), "/logout/"]:
+            with self.subTest(url=url):
+                self.client.force_login(self.user)
+                self.client.post(url)
+                self.assertFalse(get_user(self.client).is_authenticated)
+
+    def test_get_does_not_log_out(self):
+        response = self.client.get(reverse("logout"))
+        self.assertEqual(response.status_code, 405)
+        self.assertTrue(get_user(self.client).is_authenticated)
