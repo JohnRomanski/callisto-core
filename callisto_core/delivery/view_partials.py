@@ -190,14 +190,13 @@ class _ReportAccessPartial(_ReportLimitedDetailPartial):
     def dispatch(self, request, *args, **kwargs):
         logger.debug(f"{self.__class__.__name__} access check")
 
-        if (
-            self.access_granted or self.access_form_valid
-        ) and self._passphrase_next_url(request):
-            return self._redirect_from_passphrase(request)
-        elif self.access_granted or self.access_form_valid:
-            return super().dispatch(request, *args, **kwargs)
-        else:
+        # evaluate once: each check derives the key (Argon2) and may save
+        if not (self.access_granted or self.access_form_valid):
             return self._render_access_form()
+        elif self._passphrase_next_url(request):
+            return self._redirect_from_passphrase(request)
+        else:
+            return super().dispatch(request, *args, **kwargs)
 
     def _get_access_form(self):
         form_kwargs = self.get_form_kwargs()
@@ -279,7 +278,7 @@ class WizardPDFPartial(_ReportActionPartial):
     EVAL_ACTION_TYPE = "ACCESS_PDF"
 
     def form_valid(self, form):
-        super().form_valid(form)
+        # viewing a PDF must not save the report
         response = HttpResponse(content_type="application/pdf")
         response["Content-Disposition"] = (
             self.content_disposition + '; filename="record.pdf"'

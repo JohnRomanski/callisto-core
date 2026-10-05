@@ -1,8 +1,10 @@
 import json
+from unittest.mock import patch
 
 from django.urls import reverse
 
-from callisto_core.delivery import forms, models, passphrase_storage
+from callisto_core.delivery import forms, models, passphrase_storage, view_partials
+from callisto_core.delivery.models import StoredPassphrase
 from callisto_core.tests import test_base
 from callisto_core.wizard_builder.forms import PageForm
 
@@ -56,12 +58,12 @@ class NewReportFlowTest(test_base.ReportFlowHelper):
         self.assertIsInstance(form, PageForm)
 
     def test_report_creation_keeps_passphrase_encrypted_in_session(self):
-        self.assertIsNone(self.client.session.get(passphrase_storage.SESSION_KEY))
         self.client_post_report_creation()
-        stored = self.client.session[passphrase_storage.SESSION_KEY]
-        self.assertEqual(list(stored), [str(self.report.uuid)])
-        # the session (a database row) never holds the plaintext passphrase
-        self.assertNotIn(self.passphrase, json.dumps(stored))
+        stored = StoredPassphrase.objects.get()
+        self.assertEqual(stored.report_uuid, self.report.uuid)
+        # neither the stored row nor the session holds the plaintext passphrase
+        self.assertNotIn(self.passphrase.encode(), bytes(stored.encrypted_passphrase))
+        self.assertNotIn(self.passphrase, json.dumps(dict(self.client.session)))
         self.assertIn(passphrase_storage.COOKIE_NAME, self.client.cookies)
 
     def test_access_form_rendered_when_no_key_in_session(self):
@@ -157,6 +159,42 @@ class ReportMetaFlowTest(test_base.ReportFlowHelper):
         self.assertEqual(
             response.get("Content-Disposition"), 'inline; filename="record.pdf"'
         )
+
+    def test_export_does_not_modify_report(self):
+        self.client_post_report_creation()
+        self.report.refresh_from_db()
+        last_edited, encrypted = self.report.last_edited, bytes(self.report.encrypted)
+        self.client_post_report_pdf_view()
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.last_edited, last_edited)
+        self.assertEqual(bytes(self.report.encrypted), encrypted)
+
+    def test_access_check_runs_once_per_request(self):
+        # each evaluation derives the key with Argon2; dispatch used to run
+        # the check twice
+        self.client_post_report_creation()
+        self.client_clear_passphrase()
+        url = reverse("report_view", kwargs={"uuid": self.report.uuid})
+        access_granted = view_partials._ReportAccessPartial.access_granted
+        calls = []
+
+        def counted(view):
+            calls.append(view)
+            return access_granted.fget(view)
+
+        with patch.object(
+            view_partials._ReportAccessPartial, "access_granted", property(counted)
+        ):
+            self.client.post(url, {"key": self.passphrase})
+        self.assertEqual(len(calls), 1)
+
+    def test_passphrase_form_on_review_page(self):
+        self.client_post_report_creation()
+        self.client_clear_passphrase()
+        url = reverse("report_view", kwargs={"uuid": self.report.uuid})
+        response = self.client.post(url, {"key": self.passphrase})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIsInstance(response.context["form"], forms.ReportAccessForm)
 
     def test_match_report_entry(self):
         self.client_post_report_creation()
