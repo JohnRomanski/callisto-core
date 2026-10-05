@@ -41,3 +41,36 @@ jobs:
         run: make test-suite
       - name: Build
         run: uv build
+
+  frontend:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: callisto-core
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y gnupg
+      - name: Install Python packages
+        run: uv sync --locked
+      # the runner image ships Google Chrome; Selenium Manager fetches chromedriver
+      - name: Browser tests
+        run: make test-integrated

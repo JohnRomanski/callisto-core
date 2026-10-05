@@ -30,7 +30,7 @@ test-suite: ## run django checks and the unit tests
 	$(RUN) pytest -vls $(UNIT_TESTS)
 
 test-integrated: ## run the selenium frontend tests
-	$(RUN) pytest -vls callisto_core/tests/delivery/test_frontend.py
+	$(RUN) pytest -vls callisto_core/tests/delivery/test_frontend.py callisto_core/wizard_builder/tests/test_frontend.py
 
 test-fast: ## runs the test suite, with fast failures and a re-used database
 	LOG_LEVEL=INFO $(RUN) pytest -vls --maxfail=1 --ff --reuse-db $(UNIT_TESTS)
