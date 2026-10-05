@@ -119,3 +119,7 @@ class SendEmailTaskTest(TestCase):
             self.assertLogs(tasks.logger, "ERROR"),
         ):
             tasks.queue_email(self.message())
+
+    def test_single_address_string_is_not_split(self):
+        message = tasks.build_message("coordinator@example.edu", "s", "b")
+        self.assertEqual(message["to"], ["coordinator@example.edu"])

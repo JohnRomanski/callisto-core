@@ -1,5 +1,6 @@
 import json
 import threading
+from types import SimpleNamespace
 from unittest import skip
 from unittest.mock import patch
 
@@ -9,6 +10,7 @@ from django.test import TransactionTestCase
 from django.utils import timezone
 
 from callisto_core.delivery.models import MatchReport, Report
+from callisto_core.notification import tasks
 from callisto_core.reporting.api import CallistoCoreMatchingApi
 from callisto_core.reporting.report_delivery import MatchReportContent
 from callisto_core.tests.reporting.base import MatchSetup
@@ -63,6 +65,20 @@ class MatchIntegratedTest(MatchSetup, ReportPostHelper):
     def test_two_match_post_requests_trigger_matching(self):
         self._setup_matches()
         self.assert_matches_found_true()
+
+    def test_school_receives_match_delivery_at_its_address(self):
+        sent = []
+
+        def capture(message):
+            sent.append(message)
+            return SimpleNamespace(status_code=200)
+
+        with patch.object(tasks, "_post_to_mailgun", side_effect=capture):
+            self._setup_matches()
+        deliveries = [m for m in sent if m["subject"] == "match_delivery"]
+        self.assertEqual(len(deliveries), 1)
+        self.assertEqual(deliveries[0]["to"], ["COORDINATOR_EMAIL@example.com"])
+        self.assertEqual(len(deliveries[0]["attachments"]), 1)
 
     def test_some_match_emails_sent(self):
         with patch.object(CustomNotificationApi, "log_action") as api_logging:
