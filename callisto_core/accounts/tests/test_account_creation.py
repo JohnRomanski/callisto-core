@@ -1,4 +1,7 @@
-from unittest import skip
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from kombu.exceptions import OperationalError
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
@@ -6,8 +9,8 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+from callisto_core.notification import tasks
 from callisto_core.tests.test_base import ReportFlowHelper as ReportFlowTestCase
-from callisto_core.utils.api import NotificationApi
 
 from ..models import Account, BulkAccount
 
@@ -76,13 +79,27 @@ class AccountEmailParsingTest(ReportFlowTestCase):
 
 
 class AccountEmailTest(ReportFlowTestCase):
-    @skip("skip pending NotificationApi update")
     def test_gets_account_activation_email(self):
-        BulkAccount.objects.create(emails="tech@projectcallisto.org", site_id=2)
-        self.assertEqual(len(self.cassette), 1)
-        self.assertEqual(
-            self.cassette.requests[0].uri, NotificationApi.mailgun_post_route
-        )
+        with patch.object(
+            tasks, "_post_to_mailgun", return_value=SimpleNamespace(status_code=200)
+        ) as post:
+            BulkAccount.objects.create(emails="tech@projectcallisto.org", site_id=2)
+        self.assertEqual(post.call_count, 1)
+        message = post.call_args.args[0]
+        self.assertEqual(message["to"], ["tech@projectcallisto.org"])
+
+    def test_account_creation_survives_broker_outage(self):
+        with (
+            patch.object(
+                tasks.send_email, "delay", side_effect=OperationalError("down")
+            ),
+            patch.object(
+                tasks, "_post_to_mailgun", return_value=SimpleNamespace(status_code=200)
+            ) as post,
+        ):
+            BulkAccount.objects.create(emails="tech@projectcallisto.org", site_id=2)
+        self.assertEqual(post.call_count, 1)
+        self.assertTrue(Account.objects.filter(school_email="tech@projectcallisto.org"))
 
     def test_can_activate_account(self):
         BulkAccount.objects.create(emails="tech@projectcallisto.org", site_id=2)
