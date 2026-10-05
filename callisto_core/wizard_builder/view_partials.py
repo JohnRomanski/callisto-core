@@ -70,6 +70,13 @@ class WizardPartial(WizardFormPartial, view_helpers.WizardViewTemplateHelpers):
         else:
             return None
 
+    def post(self, request, *args, **kwargs):
+        # steps without a form (the review page) can still receive a POST,
+        # for example the passphrase form that unlocks them
+        if self.get_form() is None:
+            return self.get(request, *args, **kwargs)
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         form.full_clean()
         self.storage.update()

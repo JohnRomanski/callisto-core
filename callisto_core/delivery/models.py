@@ -221,3 +221,23 @@ class SentMatchReport(models.Model):
 
     def get_report_id(self):
         return f"{self.id}-1"
+
+
+class StoredPassphrase(models.Model):
+    """
+    A report passphrase kept between requests, encrypted with a key that only
+    the browser holds (see passphrase_storage). One row per session and report,
+    so concurrent requests from the same browser never overwrite each other.
+    """
+
+    session_key = models.CharField(max_length=40, db_index=True)
+    report_uuid = models.UUIDField()
+    encrypted_passphrase = models.BinaryField()
+    used = models.DateTimeField(db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["session_key", "report_uuid"], name="unique_session_report"
+            )
+        ]
