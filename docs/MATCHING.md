@@ -1,8 +1,9 @@
 # Matching: current design, its cost, and options
 
-Status: **proposal for review.** Options B–D change the cryptographic design
-that protects survivors' reports and must be reviewed by a cryptographer
-before implementation. Option A does not change the cryptography.
+Status: **option A is implemented** (`reporting/matching.py`, see
+`docs/USAGE.md`). Options B–D remain proposals: they change the cryptographic
+design that protects survivors' reports and must be reviewed by a
+cryptographer before implementation.
 
 ## How matching works today
 
@@ -59,7 +60,7 @@ typical request timeouts.
 
 ## Options
 
-### A. Run matching in a Celery worker (no cryptographic change)
+### A. Run matching in a Celery worker (no cryptographic change) — implemented
 
 Queue `find_matches` and the match notifications as a task after the
 reporter's submission is saved, instead of running them in the request.
@@ -141,8 +142,10 @@ A possible middle ground, but it still needs review of the leakage.
 
 ## Recommendation
 
-1. Implement **A** now (no cryptographic change), together with a durable
-   match outbox so notifications survive crashes and retries.
+1. ~~Implement **A** with a durable match outbox.~~ Done: `MatchingJob`
+   (pepper-encrypted identifier, only its id is queued), `MatchEvent` outbox
+   written in the matching transaction, per-step notification marking, and a
+   sweeper (`process_pending_matches` / `sweep_pending_matches`).
 2. Treat Argon2id cost as a matching-latency knob until A ships: lowering
    `ARGON2ID_*` speeds matching for new records at the cost of guessing
    resistance.

@@ -129,6 +129,25 @@ private and use TLS. If the broker can't be reached when an email is queued,
 the email is sent inside the request instead (one attempt), so a broker
 outage never fails the request.
 
+### Matching
+
+When a reporter enters a perpetrator identifier, the identifier is stored
+encrypted with `PEPPER` as a `MatchingJob`, and only the job's id is queued,
+so the broker never sees the identifier. A worker runs matching; in one
+transaction it marks matched reports, records a `MatchEvent` and deletes the
+job, then sends the school, reporters and Callisto team their notifications
+from the event, marking each step as it goes. With
+`CELERY_TASK_ALWAYS_EAGER` this all runs inside the request instead.
+
+Run the sweeper periodically to recover work a lost queue message or a
+crashed worker left behind (it is safe to run at any time):
+
+    python manage.py process_pending_matches
+
+or schedule the `callisto_core.reporting.tasks.sweep_pending_matches` task
+with Celery beat, for example every 10 minutes. Every web and worker process
+must share the same `PEPPER`, or workers cannot read the jobs.
+
 ### Logout
 
 Django's `LogoutView` only accepts POST. Log users out with a form that
