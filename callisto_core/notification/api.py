@@ -174,8 +174,9 @@ class CallistoCoreNotificationApi:
         )
         self.send()
 
-        # TODO: re-evaluate this decision
-        # save report timestamp only if generation & email work
+        # save the timestamp only if generation and email worked. Callers wrap
+        # this in delivering_synchronously() (see ConfirmationPartial), so
+        # send() raises instead of queuing when Mailgun doesn't accept it.
         sent_report.report.submitted_to_school = timezone.now()
         sent_report.report.save()
 
