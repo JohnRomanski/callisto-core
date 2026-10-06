@@ -148,18 +148,31 @@ class FormattedPasswordResetForm(PasswordResetForm):
     def get_users(self, email):
         """Get users that would match the email passed in.
 
-        Updated to support the encrypted login format created during 2019
-        Summer Maintenance.
+        Signup stores the email in plaintext on User, so look there first.
+        Accounts converted to the encrypted format during 2019 Summer
+        Maintenance only have encrypted_email, so match those too.
         """
-        email = sha256(email.encode("utf-8")).hexdigest()
-        email_index = auth.index(email)
+        users = {user.pk: user for user in super().get_users(email)}
+        for user in self._encrypted_email_users(email):
+            if user.pk not in users:
+                # plaintext was removed; reset emails go to the address entered
+                user.email = email
+                users[user.pk] = user
+        return iter(users.values())
 
-        active_users = models.Account.objects.filter(**{"email_index": email_index})
-
+    def _encrypted_email_users(self, email):
+        emailhash = sha256(email.encode("utf-8")).hexdigest()
+        accounts = models.Account.objects.filter(
+            email_index=auth.index(emailhash),
+            user__is_active=True,
+        ).select_related("user")
         return (
-            User.objects.get(pk=u.user_id)
-            for u in active_users
-            if bcrypt.checkpw(email.encode("utf-8"), u.encrypted_email.encode("utf-8"))
+            account.user
+            for account in accounts
+            if account.user.has_usable_password()
+            and bcrypt.checkpw(
+                emailhash.encode("utf-8"), account.encrypted_email.encode("utf-8")
+            )
         )
 
     def send_mail(self, *args, **kwargs):
