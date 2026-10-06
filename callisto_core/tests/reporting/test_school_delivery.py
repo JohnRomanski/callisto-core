@@ -3,12 +3,14 @@ import io
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 
 from callisto_core.delivery.model_helpers import GPGEncryptionError
 from callisto_core.delivery.models import SentFullReport
 from callisto_core.notification import tasks as email_tasks
 from callisto_core.tests import test_base
+from callisto_core.tests.utils.api import OwnTransportNotificationApi
 
 COORDINATOR = "COORDINATOR_EMAIL@example.com"
 
@@ -100,3 +102,28 @@ class SchoolDeliveryTest(test_base.ReportFlowHelper):
         with contextlib.redirect_stdout(out):
             self.submit()
         self.assertEqual(out.getvalue(), "")
+
+    @override_settings(
+        CALLISTO_NOTIFICATION_API=(
+            "callisto_core.tests.utils.api.QueuingElsewhereNotificationApi"
+        )
+    )
+    def test_custom_transport_that_only_queues_records_nothing(self):
+        response = self.submit()
+        self.assertContains(response, "nothing was sent")
+        self.report.refresh_from_db()
+        self.assertIsNone(self.report.submitted_to_school)
+        self.assertFalse(SentFullReport.objects.exists())
+
+    @override_settings(
+        CALLISTO_NOTIFICATION_API=(
+            "callisto_core.tests.utils.api.OwnTransportNotificationApi"
+        )
+    )
+    def test_custom_transport_that_delivers_is_marked_sent(self):
+        OwnTransportNotificationApi.sent = []
+        self.submit()
+        self.report.refresh_from_db()
+        self.assertIsNotNone(self.report.submitted_to_school)
+        self.assertTrue(OwnTransportNotificationApi.sent)
+        self.assertEqual(self.sent, [])  # nothing went through Mailgun

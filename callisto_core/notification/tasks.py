@@ -25,22 +25,49 @@ class DeliveryFailed(Exception):
     """Mailgun didn't accept an email sent with deliver()."""
 
 
-_deliver_now = contextvars.ContextVar("callisto_deliver_now", default=False)
+class _SynchronousDelivery:
+    def __init__(self):
+        self.accepted = 0
+
+
+_synchronous = contextvars.ContextVar("callisto_synchronous_delivery", default=None)
 
 
 @contextmanager
 def delivering_synchronously():
     """
-    Within this block, emails are sent to Mailgun immediately instead of
-    being queued, and a failure raises DeliveryFailed. Used where the caller
-    must know an email went out before recording that it did (match
-    notifications).
+    Within this block, every email must be delivered before NotificationApi's
+    send() returns, and a failure raises DeliveryFailed. Used where the caller
+    must know an email went out before recording that it did (reports to the
+    school, match notifications).
+
+    This is part of the NotificationApi contract. A NotificationApi that
+    overrides send_email must, while synchronous_delivery_requested() is true,
+    send the email immediately and call record_accepted() once its provider
+    has accepted it (tasks.deliver() does both). send() raises DeliveryFailed
+    if send_email returns without doing so, so nothing is recorded as sent.
     """
-    token = _deliver_now.set(True)
+    token = _synchronous.set(_SynchronousDelivery())
     try:
         yield
     finally:
-        _deliver_now.reset(token)
+        _synchronous.reset(token)
+
+
+def synchronous_delivery_requested() -> bool:
+    return _synchronous.get() is not None
+
+
+def record_accepted():
+    """Call after the email provider accepted an email sent synchronously."""
+    delivery = _synchronous.get()
+    if delivery is not None:
+        delivery.accepted += 1
+
+
+def accepted_count() -> int:
+    delivery = _synchronous.get()
+    return delivery.accepted if delivery is not None else 0
 
 
 def deliver(message):
@@ -51,6 +78,7 @@ def deliver(message):
         raise DeliveryFailed(repr(exc)) from exc
     if response.status_code != 200:
         raise DeliveryFailed(f"mailgun returned {response.status_code}")
+    record_accepted()
 
 
 def build_message(to, subject, html, extra=None, attachments=None):
@@ -143,7 +171,7 @@ def queue_email(message):
     the broker is unreachable, send the email inline (one attempt) instead of
     failing the request or dropping the notification.
     """
-    if _deliver_now.get():
+    if synchronous_delivery_requested():
         deliver(message)
         return
     try:

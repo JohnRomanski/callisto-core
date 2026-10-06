@@ -2,10 +2,16 @@ from unittest.mock import call, patch
 
 from django.contrib.sites.models import Site
 
+from callisto_core.notification import tasks as email_tasks
 from callisto_core.reporting.views import ReportingConfirmationView
 from callisto_core.tests.test_base import ReportFlowHelper as ReportFlowTestCase
 from callisto_core.tests.utils.api import CustomNotificationApi
 from callisto_core.utils.sites import TempSiteID
+
+
+def accept():
+    # a stand-in transport: the school's copy must be reported as accepted
+    email_tasks.record_accepted()
 
 
 class DemoModeNotificationSubjectTest(ReportFlowTestCase):
@@ -70,7 +76,9 @@ class DemoModeNotificationNameTest(ReportFlowTestCase):
 
 class DemoModeNotificationCallCountTest(ReportFlowTestCase):
     def test_default(self):
-        with patch.object(CustomNotificationApi, "send_email") as api_logging:
+        with patch.object(
+            CustomNotificationApi, "send_email", side_effect=accept
+        ) as api_logging:
             self.client_post_report_creation()
             self.client_post_reporting_end_step()
 
@@ -81,7 +89,9 @@ class DemoModeNotificationCallCountTest(ReportFlowTestCase):
 
         with (
             TempSiteID(4),
-            patch.object(CustomNotificationApi, "send_email") as api_logging,
+            patch.object(
+                CustomNotificationApi, "send_email", side_effect=accept
+            ) as api_logging,
         ):
             self.client_post_report_creation()
             self.client_post_reporting_end_step()

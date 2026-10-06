@@ -168,6 +168,18 @@ The `views.py` files in this repo are specific to callisto-core. If you are impl
 
 For changing the notification (eg. emails, PDFs, slack messages, etc) implementation
 
+Some emails must be delivered before callisto-core records that they were
+sent: the report to the school (`send_report_to_authority`, which sets
+`Report.submitted_to_school`) and the match notifications. These run inside
+`callisto_core.notification.tasks.delivering_synchronously()`. If you override
+`send_email` to use another transport, then while
+`tasks.synchronous_delivery_requested()` is true it must send immediately,
+raise `tasks.DeliveryFailed` if the provider rejects the email, and call
+`tasks.record_accepted()` once it is accepted (`tasks.deliver(message)` does
+all of this for Mailgun). If `send_email` returns without recording an
+accepted email, `send()` raises `DeliveryFailed` and nothing is recorded as
+sent.
+
 ### MatchingApi
 
 For changing the matching implementation

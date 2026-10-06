@@ -244,16 +244,16 @@ class ConfirmationPartial(_ReportSubclassPartial):
     )
 
     def form_valid(self, form):
-        # The report goes to the school synchronously, inside the transaction
-        # that records it: if Mailgun or GPG fails, nothing is recorded as
-        # sent and the survivor is told, instead of a queued email failing
-        # later while the report shows "Reported to school".
+        # send_report_to_authority returns only once the school's copy was
+        # delivered, inside the transaction that records it: if delivery or
+        # GPG fails, nothing is recorded as sent and the survivor is told,
+        # instead of a queued email failing later while the report shows
+        # "Reported to school".
         try:
             with transaction.atomic():
                 output = super().form_valid(form)
                 self._save_to_address(form)
-                with email_tasks.delivering_synchronously():
-                    self._send_report_to_authority(form.instance)
+                self._send_report_to_authority(form.instance)
         except (email_tasks.DeliveryFailed, GPGEncryptionError) as exc:
             logger.error(f"report not delivered to school: {exc!r}")
             # form_valid pointed self.object at the rolled-back SentFullReport
