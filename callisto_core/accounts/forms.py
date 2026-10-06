@@ -204,10 +204,10 @@ FormattedPasswordChangeForm.base_fields = OrderedDict(
 class ReportingVerificationEmailForm(PasswordResetForm):
     def __init__(self, *args, school_email_domain, **kwargs):
         self.school_email_domain = school_email_domain
-        if kwargs.get("instance"):  # TODO: remove
-            kwargs.pop("instance")
-        if kwargs.get("view"):  # TODO: remove
-            kwargs.pop("view")
+        # a plain Form under a report view, which also builds its passphrase
+        # form from these kwargs: drop the ModelForm ones
+        kwargs.pop("instance", None)
+        kwargs.pop("view", None)
         super().__init__(*args, **kwargs)
         email_field = self.fields["email"]
         email_field.label = "Your school email"

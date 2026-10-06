@@ -25,11 +25,8 @@ def passphrase_field(label):
 
 class FormViewExtensionMixin:
     def __init__(self, *args, **kwargs):
-        self.view = kwargs.pop("view")  # TODO: pass in something more specific
-        if kwargs.get("matching_validators"):
-            kwargs.pop("matching_validators")  # TODO: remove
-        if kwargs.get("school_email_domain"):  # TODO: remove
-            kwargs.pop("school_email_domain")
+        # the view: forms use its passphrase storage, user and report
+        self.view = kwargs.pop("view")
         super().__init__(*args, **kwargs)
 
 

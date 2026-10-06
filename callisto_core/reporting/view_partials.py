@@ -27,7 +27,7 @@ from django.contrib.auth.views import PasswordResetView
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.views.generic.edit import FormView
@@ -47,6 +47,17 @@ class _SubmissionPartial(
     view_helpers.ReportingSuccessUrlMixin, delivery_partials._ReportUpdatePartial
 ):
     back_url = None
+
+    @property
+    def back_link(self):
+        """back_url names either a report step (takes the report's uuid, as
+        its one argument) or a page that doesn't, like the dashboard"""
+        try:
+            # positional, as {% url view.back_url report.uuid %} passed it, so
+            # host routes that name the argument differently keep working
+            return reverse(self.back_url, args=[self.report.uuid])
+        except NoReverseMatch:
+            return reverse(self.back_url)
 
     @property
     def all_user_emails(self):
@@ -195,7 +206,9 @@ class ResubmitPrepPartial(PrepPartial):
 class _ReportSubclassPartial(_SubmissionPartial):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({"instance": None})  # TODO: remove
+        # the view's object is the Report; these forms create a new object of
+        # another model (SentFullReport, MatchReport) for it
+        kwargs.update({"instance": None})
         return kwargs
 
 
