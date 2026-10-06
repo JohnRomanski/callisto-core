@@ -146,7 +146,7 @@ def facebook_validation_function(url):
 def perp_identifiers():
     return {
         "email": {
-            "label": "WHAT IS THEIR TWITTER HANDLE?",
+            "label": "WHAT IS THEIR EMAIL ADDRESS?",
             "id": "email",
             "validation_function": email_validation_function,
             "example": "",
