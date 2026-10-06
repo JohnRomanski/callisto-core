@@ -102,7 +102,6 @@ class ReportBasePartial(
 
     @property
     def site_id(self):
-        # TODO: remove
         return self.request.site.id
 
     @property
@@ -111,7 +110,7 @@ class ReportBasePartial(
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({"view": self})  # TODO: remove
+        kwargs.update({"view": self})  # see FormViewExtensionMixin
         return kwargs
 
 
@@ -130,7 +129,8 @@ class _ReportDetailPartial(ReportBasePartial, views.detail.DetailView):
 
     @property
     def report(self):
-        # TODO: remove, use self.object
+        # not self.object: form_valid replaces it with the saved form object,
+        # which in the reporting views isn't the Report
         return self.get_object()
 
 
@@ -199,8 +199,11 @@ class _ReportAccessPartial(_ReportLimitedDetailPartial):
             return super().dispatch(request, *args, **kwargs)
 
     def _get_access_form(self):
-        form_kwargs = self.get_form_kwargs()
-        form_kwargs.update({"instance": self.get_object()})
+        # its own kwargs, not get_form_kwargs(): those are for the page's
+        # form and can carry arguments only that form accepts
+        form_kwargs = {"view": self, "instance": self.get_object()}
+        if self.request.method in ("POST", "PUT"):
+            form_kwargs.update({"data": self.request.POST, "files": self.request.FILES})
         return self.access_form_class(**form_kwargs)
 
     def _render_access_form(self):
@@ -223,7 +226,8 @@ class _ReportUpdatePartial(_ReportAccessPartial, views.edit.UpdateView):
 
     @property
     def report(self):
-        # TODO: remove, use self.object
+        # not self.object: form_valid replaces it with the saved form object,
+        # which in the reporting views isn't the Report
         return self.get_object()
 
 

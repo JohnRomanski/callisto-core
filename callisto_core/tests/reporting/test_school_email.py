@@ -6,6 +6,7 @@ from django.core import mail
 from django.urls import reverse
 
 from callisto_core.accounts.models import Account
+from callisto_core.delivery.models import StoredPassphrase
 from callisto_core.notification import tasks as email_tasks
 from callisto_core.tests import test_base
 
@@ -50,3 +51,10 @@ class SchoolEmailVerificationTest(test_base.ReportFlowHelper):
         self.enter_school_email()
         self.assertEqual(mail.outbox, [])
         self.assertEqual(len(self.sent), 1)
+
+    def test_asks_for_the_passphrase_first(self):
+        StoredPassphrase.objects.all().delete()  # a new browser session
+        response = self.client.get(
+            reverse("reporting_email_confirmation", kwargs={"uuid": self.report.uuid})
+        )
+        self.assertContains(response, 'name="key"')

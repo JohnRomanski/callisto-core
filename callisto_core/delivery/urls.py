@@ -152,24 +152,10 @@ urlpatterns = [
         delivery_views.DashboardMatchingWithdrawnView.as_view(),
         name="dashboard_matching_withdrawn",
     ),
-    # TODO: remove
-    re_path(
-        r"^dashboard/uuid/(?P<uuid>.+)/$",
-        django_views.RedirectView.as_view(url=reverse_lazy("dashboard")),
-        name="dashboard",
-    ),
     re_path(
         r"^dashboard/confirmation/$",
         django_views.TemplateView.as_view(
             template_name="callisto_core/accounts/school_email_sent.html"
-        ),
-        name="email_confirmation_response",
-    ),
-    # TODO: remove
-    re_path(
-        r"^dashboard/confirmation/uuid/(?P<uuid>.+)/$",
-        django_views.RedirectView.as_view(
-            url=reverse_lazy("email_confirmation_response")
         ),
         name="email_confirmation_response",
     ),
