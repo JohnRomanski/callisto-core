@@ -13,6 +13,7 @@ def _required_env(name):
 
 
 DEBUG = False
+CALLISTO_EMAIL_LINK_PROTOCOL = "https"
 
 # secrets must come from the environment; the base settings' defaults are
 # demo placeholders, and its PEPPER is random per process (which would make

@@ -67,6 +67,9 @@ django settings.py minimum requirements
     CALLISTO_EVAL_PUBLIC_KEY
     CALLISTO_EVAL_PRIVATE_KEY (keep this one secret!)
 
+    # links in emails sent outside a request; "https" unless you set it
+    CALLISTO_EMAIL_LINK_PROTOCOL
+
     # apis, see api section below
     CALLISTO_MATCHING_API
     CALLISTO_NOTIFICATION_API
