@@ -104,7 +104,6 @@ class MatchAlertingTest(MatchSetup):
 
 
 class ConcurrentMatchingTest(TransactionTestCase):
-
     def setUp(self):
         if connection.vendor != "postgresql":
             self.skipTest("needs row-level locks (select_for_update)")
