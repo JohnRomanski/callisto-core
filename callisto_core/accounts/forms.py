@@ -1,8 +1,5 @@
 import logging
 from collections import OrderedDict
-from hashlib import sha256
-
-import bcrypt
 
 from django import forms
 from django.conf import settings
@@ -21,7 +18,7 @@ from django.utils.safestring import mark_safe
 
 from callisto_core.utils.api import NotificationApi, TenantApi
 
-from . import auth, models, validators
+from . import validators
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -144,23 +141,6 @@ class FormattedPasswordResetForm(PasswordResetForm):
     def save(self, *args, **kwargs):
         kwargs["domain_override"] = TenantApi.get_current_domain()
         super().save(*args, **kwargs)
-
-    def get_users(self, email):
-        """Get users that would match the email passed in.
-
-        Updated to support the encrypted login format created during 2019
-        Summer Maintenance.
-        """
-        email = sha256(email.encode("utf-8")).hexdigest()
-        email_index = auth.index(email)
-
-        active_users = models.Account.objects.filter(**{"email_index": email_index})
-
-        return (
-            User.objects.get(pk=u.user_id)
-            for u in active_users
-            if bcrypt.checkpw(email.encode("utf-8"), u.encrypted_email.encode("utf-8"))
-        )
 
     def send_mail(self, *args, **kwargs):
         NotificationApi.send_password_reset_email(self, *args, **kwargs)

@@ -179,20 +179,22 @@ class CallistoCoreNotificationApi:
         sent_report.report.submitted_to_school = timezone.now()
         sent_report.report.save()
 
-    def send_password_reset_email(self, form, *args, **kwargs):
-        email = form.cleaned_data.get("email")
-        for user in form.get_users(email):
-            self.send_with_kwargs(
-                site_id=user.account.site_id,
-                to_addresses=[email],
-                email_subject="Reset your password",
-                email_name="password_reset_email",
-                uid=args[2]["uid"],
-                protocol=args[2]["protocol"],
-                email_template_name=args[1],
-                user=args[2]["user"],
-                token=args[2]["token"],
-            )
+    def send_password_reset_email(
+        self, form, subject_template_name, email_template_name, context, *args, **kwargs
+    ):
+        # PasswordResetForm.save calls this once per matching user
+        user = context["user"]
+        self.send_with_kwargs(
+            site_id=user.account.site_id,
+            to_addresses=[context["email"]],
+            email_subject="Reset your password",
+            email_name="password_reset_email",
+            uid=context["uid"],
+            protocol=context["protocol"],
+            email_template_name=email_template_name,
+            user=user,
+            token=context["token"],
+        )
 
     def send_account_activation_email(self, user, email):
         # TODO: mirror send_password_reset_email

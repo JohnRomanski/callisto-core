@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.http import HttpResponse
@@ -28,33 +27,8 @@ class ReportPostHelper:
 
         url = reverse("login")
 
-        if (
-            "callisto_core.accounts.auth.EncryptedBackend"
-            in settings.AUTHENTICATION_BACKENDS
-        ):
-            from hashlib import sha256
-
-            import bcrypt
-
-            from callisto_core.accounts.auth import index
-
-            userhash = sha256(self.username.lower().encode("utf-8")).hexdigest()
-            usercrypt = bcrypt.hashpw(userhash.encode("utf-8"), bcrypt.gensalt())
-            userindex = index(userhash)
-
-            self.userhash = userhash
-
-            Account.objects.create(
-                user=self.user,
-                site_id=1,
-                encrypted_username=usercrypt.decode(),
-                username_index=userindex,
-            )
-
-            data = {"username": self.userhash, "password": self.password}
-        else:
-            data = {"username": self.username, "password": self.password}
-            Account.objects.create(user=self.user, site_id=1)
+        data = {"username": self.username, "password": self.password}
+        Account.objects.create(user=self.user, site_id=1)
         response = self.client.post(url, data, follow=True)
         self.assertIn(response.status_code, self.valid_statuses)
         return response
@@ -209,34 +183,10 @@ class ReportFlowHelper(TestCase, ReportPostHelper, ReportAssertionHelper):
         username = "testing_122"
         self.user = User.objects.create_user(username=username, password="testing_12")
 
-        if (
-            "callisto_core.accounts.auth.EncryptedBackend"
-            in settings.AUTHENTICATION_BACKENDS
-        ):
-            from hashlib import sha256
-
-            import bcrypt
-
-            from callisto_core.accounts.auth import index
-
-            userhash = sha256(username.lower().encode("utf-8")).hexdigest()
-            usercrypt = bcrypt.hashpw(userhash.encode("utf-8"), bcrypt.gensalt())
-            userindex = index(userhash)
-
-            Account.objects.create(
-                user=self.user,
-                site_id=1,
-                school_email=self.school_email,
-                encrypted_username=usercrypt.decode(),
-                username_index=userindex,
-            )
-            self.client.login(username=userhash, password="testing_12")
-            self.userhash = userhash
-        else:
-            Account.objects.create(
-                user=self.user, site_id=1, school_email=self.school_email
-            )
-            self.client.login(username=username, password="testing_12")
+        Account.objects.create(
+            user=self.user, site_id=1, school_email=self.school_email
+        )
+        self.client.login(username=username, password="testing_12")
 
     def _setup_sites(self):
         self.site = Site.objects.get(id=1)

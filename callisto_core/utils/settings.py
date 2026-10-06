@@ -152,4 +152,3 @@ CELERY_TASK_ALWAYS_EAGER = True
 CELERY_BROKER_URL = "memory://"
 
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY", default="")
-INDEXING_KEY = os.getenv("INDEXING_KEY", "notsettingthiswillbreakyou")

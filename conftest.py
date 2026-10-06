@@ -1,10 +1,6 @@
-import os
 from types import SimpleNamespace
 
 import pytest
-
-# Test-only defaults. Production deployments must set these explicitly.
-os.environ.setdefault("INDEXING_KEY", "thisisatest")
 
 
 @pytest.fixture(autouse=True)

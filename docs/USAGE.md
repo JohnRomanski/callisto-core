@@ -63,7 +63,6 @@ django settings.py minimum requirements
     # secrets: load from the environment, never change them
     SECRET_KEY
     PEPPER  # 32 bytes, identical in every process
-    INDEXING_KEY
 
     CALLISTO_EVAL_PUBLIC_KEY
     CALLISTO_EVAL_PRIVATE_KEY (keep this one secret!)
@@ -85,8 +84,9 @@ each submission, so higher costs make matching proportionally slower.
 `PEPPER` encrypts every match report a second time. It must be 32 bytes, the
 same in every process, and never change, or existing match reports become
 unreadable. Run `python manage.py check --deploy`: callisto-core reports a
-demo `SECRET_KEY` (`callisto.E001`), a placeholder `INDEXING_KEY`
-(`callisto.E002`) and a malformed `PEPPER` (`callisto.E003`).
+demo `SECRET_KEY` (`callisto.E001`) and a malformed `PEPPER`
+(`callisto.E003`). (`callisto.E002` checked `INDEXING_KEY`, which is no longer
+used.)
 
 ### Rate limiting
 

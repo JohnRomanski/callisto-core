@@ -18,7 +18,6 @@ DEBUG = False
 # demo placeholders, and its PEPPER is random per process (which would make
 # match reports unreadable after a restart or by another worker)
 SECRET_KEY = _required_env("SECRET_KEY")
-INDEXING_KEY = _required_env("INDEXING_KEY")
 PEPPER = bytes.fromhex(_required_env("PEPPER"))  # 64 hex characters
 
 # HTTPS. SECURE_PROXY_SSL_HEADER is only safe behind a proxy that always sets

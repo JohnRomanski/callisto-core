@@ -9,7 +9,6 @@ from django.core.checks import Error, Tags, register
 
 # placeholder values from callisto_core.utils.settings, the demo settings
 DEMO_SECRET_KEYS = {"secret key"}
-DEMO_INDEXING_KEYS = {"notsettingthiswillbreakyou", "thisisatest"}
 
 
 @register(Tags.security, deploy=True)
@@ -21,14 +20,6 @@ def check_callisto_secrets(app_configs, **kwargs):
                 "SECRET_KEY is the callisto-core demo value.",
                 hint="Set a long random SECRET_KEY for this deployment.",
                 id="callisto.E001",
-            )
-        )
-    if getattr(settings, "INDEXING_KEY", None) in DEMO_INDEXING_KEYS | {None, ""}:
-        errors.append(
-            Error(
-                "INDEXING_KEY is missing or a callisto-core placeholder.",
-                hint="Set a random INDEXING_KEY; it keys the username lookup index.",
-                id="callisto.E002",
             )
         )
     pepper = getattr(settings, "PEPPER", None)
