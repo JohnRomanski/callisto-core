@@ -1,8 +1,5 @@
 import logging
 from collections import OrderedDict
-from hashlib import sha256
-
-import bcrypt
 
 from django import forms
 from django.conf import settings
@@ -21,7 +18,7 @@ from django.utils.safestring import mark_safe
 
 from callisto_core.utils.api import NotificationApi, TenantApi
 
-from . import auth, models, validators
+from . import validators
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -144,36 +141,6 @@ class FormattedPasswordResetForm(PasswordResetForm):
     def save(self, *args, **kwargs):
         kwargs["domain_override"] = TenantApi.get_current_domain()
         super().save(*args, **kwargs)
-
-    def get_users(self, email):
-        """Get users that would match the email passed in.
-
-        Signup stores the email in plaintext on User, so look there first.
-        Accounts converted to the encrypted format during 2019 Summer
-        Maintenance only have encrypted_email, so match those too.
-        """
-        users = {user.pk: user for user in super().get_users(email)}
-        for user in self._encrypted_email_users(email):
-            if user.pk not in users:
-                # plaintext was removed; reset emails go to the address entered
-                user.email = email
-                users[user.pk] = user
-        return iter(users.values())
-
-    def _encrypted_email_users(self, email):
-        emailhash = sha256(email.encode("utf-8")).hexdigest()
-        accounts = models.Account.objects.filter(
-            email_index=auth.index(emailhash),
-            user__is_active=True,
-        ).select_related("user")
-        return (
-            account.user
-            for account in accounts
-            if account.user.has_usable_password()
-            and bcrypt.checkpw(
-                emailhash.encode("utf-8"), account.encrypted_email.encode("utf-8")
-            )
-        )
 
     def send_mail(self, *args, **kwargs):
         NotificationApi.send_password_reset_email(self, *args, **kwargs)

@@ -1,13 +1,9 @@
-from hashlib import sha256
 from types import SimpleNamespace
 from unittest.mock import patch
-
-import bcrypt
 
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from callisto_core.accounts.auth import index
 from callisto_core.accounts.models import Account
 from callisto_core.notification import tasks as email_tasks
 from callisto_core.tests import test_base
@@ -36,21 +32,12 @@ class PasswordResetTest(test_base.ReportFlowHelper):
     def recipients(self):
         return [message["to"] for message in self.sent]
 
-    def make_user(self, username, email="", **account):
+    def make_user(self, username, email=""):
         user = User.objects.create_user(
             username=username, password="a-long-pass-123!", email=email
         )
-        Account.objects.create(user=user, site_id=1, **account)
+        Account.objects.create(user=user, site_id=1)
         return user
-
-    def encrypted_email(self, email=EMAIL):
-        emailhash = sha256(email.encode("utf-8")).hexdigest()
-        return {
-            "encrypted_email": bcrypt.hashpw(
-                emailhash.encode("utf-8"), bcrypt.gensalt()
-            ).decode(),
-            "email_index": index(emailhash),
-        }
 
     def test_user_who_signed_up_with_email_gets_reset_email(self):
         self.client.post(
@@ -70,18 +57,6 @@ class PasswordResetTest(test_base.ReportFlowHelper):
     def test_email_match_ignores_case(self):
         self.make_user("plain", email=EMAIL)
         self.request_reset(EMAIL.upper())
-        self.assertEqual(len(self.sent), 1)
-
-    def test_encrypted_only_account_gets_reset_email(self):
-        user = self.make_user("encrypted", **self.encrypted_email())
-        self.request_reset()
-        self.assertEqual(self.recipients(), [[EMAIL]])
-        user.refresh_from_db()
-        self.assertEqual(user.email, "")  # the plaintext isn't stored back
-
-    def test_account_with_both_formats_gets_one_email(self):
-        self.make_user("both", email=EMAIL, **self.encrypted_email())
-        self.request_reset()
         self.assertEqual(len(self.sent), 1)
 
     def test_each_matching_account_gets_one_email(self):
@@ -107,7 +82,5 @@ class PasswordResetTest(test_base.ReportFlowHelper):
         user = self.make_user("inactive", email=EMAIL)
         user.is_active = False
         user.save()
-        self.make_user("inactive-encrypted", **self.encrypted_email())
-        User.objects.filter(username="inactive-encrypted").update(is_active=False)
         self.request_reset()
         self.assertEqual(self.sent, [])
