@@ -160,7 +160,9 @@ class CallistoCoreNotificationApi:
         """
         Send new full report to the reporting coordinator
 
-        Called at the end of the "reporting" flow
+        Called at the end of the "reporting" flow. Returns only once the email
+        was accepted for delivery, and only then records the report as
+        submitted; raises tasks.DeliveryFailed (or GPGEncryptionError) otherwise.
         """
         to_addresses = _address_list(to_addresses)
         self.context = {
@@ -172,10 +174,10 @@ class CallistoCoreNotificationApi:
         self._notification_with_full_report(
             sent_report, report_data, public_key, to_addresses
         )
-        self.send()
+        with tasks.delivering_synchronously():
+            self.send()
 
-        # TODO: re-evaluate this decision
-        # save report timestamp only if generation & email work
+        # reached only if generation and delivery worked
         sent_report.report.submitted_to_school = timezone.now()
         sent_report.report.save()
 
@@ -221,7 +223,8 @@ class CallistoCoreNotificationApi:
 
         Assumes all matches are on the same site
 
-        Called during a successful matching run
+        Called during a successful matching run. Returns only once the email
+        was accepted for delivery; raises tasks.DeliveryFailed otherwise.
         """
         to_addresses = _address_list(to_addresses)
         user = matches[0].report.owner
@@ -235,7 +238,8 @@ class CallistoCoreNotificationApi:
         self._notification_with_match_report(
             matches, identifier, to_addresses, public_key
         )
-        self.send()
+        with tasks.delivering_synchronously():
+            self.send()
 
     def send_match_notification(self, match_report):
         """
@@ -340,7 +344,17 @@ class CallistoCoreNotificationApi:
                 attachment
         """
         self.pre_send()
+        accepted = tasks.accepted_count()
         self.send_email()
+        if (
+            tasks.synchronous_delivery_requested()
+            and tasks.accepted_count() == accepted
+        ):
+            # a send_email that queued (or dropped) the email while the
+            # caller needs it delivered; see tasks.delivering_synchronously
+            raise tasks.DeliveryFailed(
+                f"{type(self).__name__}.send_email returned without delivering"
+            )
         self.post_send()
 
     def post_send(self):

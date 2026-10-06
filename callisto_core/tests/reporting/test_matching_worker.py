@@ -248,6 +248,19 @@ class MatchDeliveryTest(MatchingTestBase):
         self.assertFalse(MatchingJob.objects.filter(pk=good.pk).exists())
         self.assert_matches_found_true()
 
+    @override_settings(
+        CALLISTO_NOTIFICATION_API=(
+            "callisto_core.tests.utils.api.QueuingElsewhereNotificationApi"
+        )
+    )
+    def test_custom_transport_that_only_queues_keeps_steps_pending(self):
+        event = self.event()
+        with self.assertRaises(email_tasks.DeliveryFailed):
+            matching.send_notifications(event.pk)
+        event.refresh_from_db()
+        self.assertFalse(event.authority_notified)
+        self.assertIsNone(event.completed)
+
     def test_email_task_acknowledges_late(self):
         self.assertTrue(email_tasks.send_email.acks_late)
         self.assertTrue(email_tasks.send_email.reject_on_worker_lost)

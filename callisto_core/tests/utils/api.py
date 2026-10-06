@@ -1,3 +1,4 @@
+from callisto_core.notification import tasks as email_tasks
 from callisto_core.notification.api import CallistoCoreNotificationApi
 from callisto_core.reporting.api import CallistoCoreMatchingApi
 from callisto_core.utils.tenant_api import CallistoCoreTenantApi
@@ -19,6 +20,24 @@ class CustomNotificationApi(SiteAwareNotificationApi):
 
     def _logging(self, *args, **kwargs):
         pass  # for testing inputs
+
+
+class QueuingElsewhereNotificationApi(CustomNotificationApi):
+    """A replacement transport that ignores the synchronous delivery contract."""
+
+    def send_email(self):
+        pass  # handed to some other queue
+
+
+class OwnTransportNotificationApi(CustomNotificationApi):
+    """A replacement transport that honors the synchronous delivery contract."""
+
+    sent = []
+
+    def send_email(self):
+        type(self).sent.append(self.context["subject"])
+        if email_tasks.synchronous_delivery_requested():
+            email_tasks.record_accepted()
 
 
 class CustomMatchingApi(CallistoCoreMatchingApi):

@@ -21,7 +21,10 @@ and should not define:
 
 """
 
+import logging
+
 from django.contrib.auth.views import PasswordResetView
+from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -31,9 +34,13 @@ from django.views.generic.edit import FormView
 
 from callisto_core.accounts import forms as account_forms, tokens as account_tokens
 from callisto_core.delivery import view_partials as delivery_partials
+from callisto_core.delivery.model_helpers import GPGEncryptionError
+from callisto_core.notification import tasks as email_tasks
 from callisto_core.utils.api import NotificationApi, TenantApi
 
 from . import forms, matching, view_helpers
+
+logger = logging.getLogger(__name__)
 
 
 class _SubmissionPartial(
@@ -231,10 +238,28 @@ class ConfirmationPartial(_ReportSubclassPartial):
     SLACK_ALERT_TEXT = (
         "New Callisto Report at {school_name} (details will be sent via email)"
     )
+    DELIVERY_FAILED_ERROR = (
+        "We couldn't send your report to the school, so nothing was sent. "
+        "Please try again later."
+    )
 
     def form_valid(self, form):
-        output = super().form_valid(form)
-        self._save_to_address(form)
+        # send_report_to_authority returns only once the school's copy was
+        # delivered, inside the transaction that records it: if delivery or
+        # GPG fails, nothing is recorded as sent and the survivor is told,
+        # instead of a queued email failing later while the report shows
+        # "Reported to school".
+        try:
+            with transaction.atomic():
+                output = super().form_valid(form)
+                self._save_to_address(form)
+                self._send_report_to_authority(form.instance)
+        except (email_tasks.DeliveryFailed, GPGEncryptionError) as exc:
+            logger.error(f"report not delivered to school: {exc!r}")
+            # form_valid pointed self.object at the rolled-back SentFullReport
+            self.object = self.get_object()
+            form.add_error(None, self.DELIVERY_FAILED_ERROR)
+            return self.form_invalid(form)
         self._send_report_alerts()
         return output
 
@@ -246,7 +271,6 @@ class ConfirmationPartial(_ReportSubclassPartial):
             "to_addresses": [self.coordinator_emails],
             "public_key": self.coordinator_public_key,
         }
-        print(kwargs)
         if self.in_demo_mode:
             kwargs["DEMO_MODE"] = True
             kwargs["to_addresses"] += self.all_user_emails
@@ -286,8 +310,6 @@ class ConfirmationPartial(_ReportSubclassPartial):
         sent_report.save()
 
     def _send_report_alerts(self):
-        for sent_full_report in self.report.sentfullreport_set.all():
-            self._send_report_to_authority(sent_full_report)
         self._send_confirmation_email()
         self._send_confirmation_email_to_callisto()
         self._send_confirmation_slack_notification()
