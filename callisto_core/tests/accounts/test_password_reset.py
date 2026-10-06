@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from django.urls import reverse
 
 from callisto_core.accounts.models import Account
@@ -32,11 +33,11 @@ class PasswordResetTest(test_base.ReportFlowHelper):
     def recipients(self):
         return [message["to"] for message in self.sent]
 
-    def make_user(self, username, email=""):
+    def make_user(self, username, email="", site_id=1):
         user = User.objects.create_user(
             username=username, password="a-long-pass-123!", email=email
         )
-        Account.objects.create(user=user, site_id=1)
+        Account.objects.create(user=user, site_id=site_id)
         return user
 
     def test_user_who_signed_up_with_email_gets_reset_email(self):
@@ -82,5 +83,18 @@ class PasswordResetTest(test_base.ReportFlowHelper):
         user = self.make_user("inactive", email=EMAIL)
         user.is_active = False
         user.save()
+        self.request_reset()
+        self.assertEqual(self.sent, [])
+
+    def test_account_on_another_site_gets_nothing(self):
+        Site.objects.get_or_create(id=2, defaults={"domain": "other.example"})
+        self.make_user("elsewhere", email=EMAIL, site_id=2)
+        self.request_reset()  # on site 1
+        self.assertEqual(self.sent, [])
+
+    def test_user_without_account_gets_nothing(self):
+        User.objects.create_user(
+            username="no-account", password="a-long-pass-123!", email=EMAIL
+        )
         self.request_reset()
         self.assertEqual(self.sent, [])

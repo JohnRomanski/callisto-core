@@ -11,6 +11,7 @@ from django.contrib.auth.forms import (
     SetPasswordForm,
     UserCreationForm,
 )
+from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ValidationError
 from django.forms.fields import CharField
 from django.forms.widgets import PasswordInput, TextInput
@@ -140,7 +141,18 @@ class FormattedPasswordResetForm(PasswordResetForm):
 
     def save(self, *args, **kwargs):
         kwargs["domain_override"] = TenantApi.get_current_domain()
+        self.site_id = get_current_site(kwargs.get("request")).id
         super().save(*args, **kwargs)
+
+    def get_users(self, email):
+        # only accounts on this site: login rejects the others, so a reset
+        # link for them would only tell their owner someone asked here
+        return (
+            user
+            for user in super().get_users(email)
+            if getattr(user, "account", None) is not None
+            and user.account.site_id == self.site_id
+        )
 
     def send_mail(self, *args, **kwargs):
         NotificationApi.send_password_reset_email(self, *args, **kwargs)

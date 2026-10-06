@@ -199,7 +199,8 @@ class CallistoCoreNotificationApi:
         )
 
     def send_account_activation_email(self, user, email):
-        # TODO: mirror send_password_reset_email
+        # sent from the admin, outside a request: domain and protocol come
+        # from set_domain / set_protocol, like any other email
         self.send_with_kwargs(
             email_template_name="callisto_core/accounts/account_activation_email.html",
             to_addresses=[email],
@@ -367,8 +368,10 @@ class CallistoCoreNotificationApi:
         return {}
 
     def set_protocol(self):
+        # emails sent outside a request (bulk account activation) can't ask
+        # the request; never fall back to http just because DEBUG is on
         if not self.context.get("protocol"):
-            protocol = "http" if settings.DEBUG else "https"  # TODO: not this
+            protocol = getattr(settings, "CALLISTO_EMAIL_LINK_PROTOCOL", "https")
             self.context.update({"protocol": protocol})
 
     def set_domain(self):

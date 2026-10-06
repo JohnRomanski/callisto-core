@@ -143,7 +143,10 @@ class SchoolEmailFormPartial(_SubmissionPartial, CallistoPasswordResetView):
     def form_valid(self, form):
         self._update_email(form)
         self._send_mail(form)
-        return super().form_valid(form)
+        # not super(): CallistoPasswordResetView.form_valid would run the
+        # password-reset save() and email a reset link to every account
+        # whose email is the school address entered here
+        return HttpResponseRedirect(self.get_success_url())
 
     def _update_email(self, form):
         self.request.user.account.school_email = form.cleaned_data.get("email")
