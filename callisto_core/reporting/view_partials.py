@@ -50,10 +50,12 @@ class _SubmissionPartial(
 
     @property
     def back_link(self):
-        """back_url names either a report step (takes the uuid) or a page
-        that doesn't, like the dashboard"""
+        """back_url names either a report step (takes the report's uuid, as
+        its one argument) or a page that doesn't, like the dashboard"""
         try:
-            return reverse(self.back_url, kwargs={"uuid": self.report.uuid})
+            # positional, as {% url view.back_url report.uuid %} passed it, so
+            # host routes that name the argument differently keep working
+            return reverse(self.back_url, args=[self.report.uuid])
         except NoReverseMatch:
             return reverse(self.back_url)
 
