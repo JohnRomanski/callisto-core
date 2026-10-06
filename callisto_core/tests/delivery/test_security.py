@@ -1,4 +1,6 @@
 import tempfile
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import gnupg
 
@@ -24,13 +26,17 @@ class DecryptRateLimitTest(test_base.ReportFlowHelper):
         limit = int(settings.DECRYPT_THROTTLE_RATE.split("/")[0])
         url = reverse("report_view", kwargs={"uuid": self.report.uuid})
 
-        for _ in range(limit):
-            response = self.client.post(url, {"key": "wrong passphrase"})
-            self.assertNotEqual(response.status_code, 403)
+        # django-ratelimit counts in clock-aligned windows; freeze its clock so
+        # a slow run can't straddle a window edge and reset the count
+        frozen = SimpleNamespace(time=lambda: 1_700_000_000.0)
+        with patch("django_ratelimit.core.time", frozen):
+            for _ in range(limit):
+                response = self.client.post(url, {"key": "wrong passphrase"})
+                self.assertNotEqual(response.status_code, 403)
 
-        # even the correct passphrase is refused once the limit is hit
-        response = self.client.post(url, {"key": self.passphrase})
-        self.assertEqual(response.status_code, 403)
+            # even the correct passphrase is refused once the limit is hit
+            response = self.client.post(url, {"key": self.passphrase})
+            self.assertEqual(response.status_code, 403)
 
 
 class GPGEncryptTest(TestCase):

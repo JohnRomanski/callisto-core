@@ -241,3 +241,37 @@ class StoredPassphrase(models.Model):
                 fields=["session_key", "report_uuid"], name="unique_session_report"
             )
         ]
+
+
+class MatchingJob(models.Model):
+    """
+    An identifier waiting to be matched by a worker. The identifier is
+    encrypted with the server pepper so it never sits in the broker (only the
+    row id is queued) or in the database in clear. Deleted in the same
+    transaction that records the outcome.
+    """
+
+    encrypted_identifier = models.BinaryField()
+    site_id = models.IntegerField()
+    # the Callisto team email template of the view that scheduled the job
+    admin_email_template = models.CharField(max_length=255, blank=True)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+
+
+class MatchEvent(models.Model):
+    """
+    Outbox for a found match. Created in the same transaction that sets
+    match_found, so a crash can't lose the match; each notification step is
+    marked once sent, so retries resume instead of skipping or repeating.
+    The identifier (needed for the school's report) is wiped once complete.
+    """
+
+    match_reports = models.ManyToManyField(MatchReport)
+    encrypted_identifier = models.BinaryField()
+    site_id = models.IntegerField()
+    admin_email_template = models.CharField(max_length=255, blank=True)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    authority_notified = models.BooleanField(default=False)
+    owners_notified = models.BooleanField(default=False)
+    callisto_notified = models.BooleanField(default=False)
+    completed = models.DateTimeField(null=True, blank=True, db_index=True)

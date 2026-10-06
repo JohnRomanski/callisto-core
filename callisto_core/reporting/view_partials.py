@@ -31,9 +31,9 @@ from django.views.generic.edit import FormView
 
 from callisto_core.accounts import forms as account_forms, tokens as account_tokens
 from callisto_core.delivery import view_partials as delivery_partials
-from callisto_core.utils.api import MatchingApi, NotificationApi, TenantApi
+from callisto_core.utils.api import NotificationApi, TenantApi
 
-from . import forms, view_helpers
+from . import forms, matching, view_helpers
 
 
 class _SubmissionPartial(
@@ -196,36 +196,15 @@ class _MatchingPartial(_ReportSubclassPartial):
 
         self._notify_owner_of_submission(identifiers)
         for identifier in identifiers:
-            matches = self._get_matches(identifier)
-
-            if matches:
-                self._notify_authority_of_matches(matches, identifier)
-                self._notify_owners_of_matches(matches)
-                self._slack_match_notification()
-                self._match_confirmation_email_to_callisto(matches)
+            # matching and match notifications run in a worker when Celery has
+            # a broker, and inline otherwise; see reporting/matching.py
+            matching.schedule(
+                identifier,
+                site_id=self.site_id,
+                admin_email_template=getattr(self, "admin_email_template_name", ""),
+            )
 
         return response
-
-    def _get_matches(self, identifier):
-        return MatchingApi.find_matches(identifier)
-
-    def _slack_match_notification(self):
-        if not self.in_demo_mode:
-            NotificationApi.slack_notification(
-                msg="New Callisto Matches (details will be sent via email)",
-                type="match_confirmation",
-            )
-
-    def _match_confirmation_email_to_callisto(self, matches):
-        if not self.in_demo_mode:
-            NotificationApi.send_with_kwargs(
-                site_id=self.site_id,  # required in general
-                email_template_name=self.admin_email_template_name,  # the email template
-                to_addresses=NotificationApi.ALERT_LIST,  # addresses to send to
-                matches=matches,  # used in the email body
-                email_subject="New Callisto Matches",  # rendered as the email subject
-                email_name="match_confirmation_callisto_team",  # used in test assertions
-            )
 
     def _notify_owner_of_submission(self, identifier):
         if identifier:
@@ -234,18 +213,6 @@ class _MatchingPartial(_ReportSubclassPartial):
                 to_addresses=[self.report.contact_email],
                 site_id=self.site_id,
             )
-
-    def _notify_authority_of_matches(self, matches, identifier):
-        NotificationApi.send_matching_report_to_authority(
-            matches=matches,
-            identifier=identifier,
-            to_addresses=self.coordinator_emails,
-            public_key=self.coordinator_public_key,
-        )
-
-    def _notify_owners_of_matches(self, matches):
-        for match in matches:
-            NotificationApi.send_match_notification(match_report=match)
 
 
 class OptionalMatchingPartial(_MatchingPartial):
