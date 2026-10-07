@@ -35,9 +35,9 @@ def headless_mode():
 
 
 class AuthMixin:
-    passphrase = "soooooo seekrit"
+    passphrase = "soooooo seekrit browser passphrase"
     username = "demo"
-    password = "demodemodemo123123"
+    password = "demo.browser.account-passw0rd"
 
 
 class AssertionsMixin:

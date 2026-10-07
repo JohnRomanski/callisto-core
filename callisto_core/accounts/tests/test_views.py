@@ -26,8 +26,8 @@ class SignupViewIntegratedTest(AccountsTestCase):
     signup_url = reverse("signup")
     DEFAULT_POST = {
         "username": "test",
-        "password1": "p@ssw0rd",
-        "password2": "p@ssw0rd",
+        "password1": "a sturdy test passw0rd",
+        "password2": "a sturdy test passw0rd",
         "terms": "true",
     }
 
@@ -48,7 +48,11 @@ class SignupViewIntegratedTest(AccountsTestCase):
     def test_password_fields_must_match(self):
         response = self.client.post(
             self.signup_url,
-            {"username": "test", "password1": "p@ssw0rd", "password2": "p@ssw0rd3"},
+            {
+                "username": "test",
+                "password1": "a sturdy test passw0rd",
+                "password2": "a sturdy test passw0rd3",
+            },
         )
         self.assertFalse(response.context["form"].is_valid())
 
@@ -68,8 +72,8 @@ class SignupViewIntegratedTest(AccountsTestCase):
             {
                 "username": "test",
                 "email": "test@email.co.uk",
-                "password1": "p@ssw0rd",
-                "password2": "p@ssw0rd",
+                "password1": "a sturdy test passw0rd",
+                "password2": "a sturdy test passw0rd",
                 "terms": "true",
             },
         )
@@ -114,8 +118,8 @@ class SignupViewUnitTest(AccountsTestCase):
         self.request.META["HTTP_HOST"] = "testserver"
         self.request.POST = {
             "username": "test",
-            "password1": "p@ssw0rd",
-            "password2": "p@ssw0rd",
+            "password1": "a sturdy test passw0rd",
+            "password2": "a sturdy test passw0rd",
             "terms": "true",
         }
         self.request.site = Site.objects.first()
@@ -144,7 +148,7 @@ class LoginViewTest(AccountsTestCase):
         self.assertIsInstance(response.context["form"], AuthenticationForm)
 
     def test_user_login_basic_case(self):
-        auth_info = {"username": "test", "password": "p@ssw0rd"}
+        auth_info = {"username": "test", "password": "a sturdy test passw0rd"}
         user = User.objects.create_user(**auth_info)
         Account.objects.create(user=user, site_id=1)
         self.client.post(self.login_url, auth_info)
@@ -152,7 +156,7 @@ class LoginViewTest(AccountsTestCase):
         self.assertTrue(get_user(self.client).is_authenticated)
 
     def test_user_login_blocked_for_other_sites(self):
-        auth_info = {"username": "test", "password": "p@ssw0rd"}
+        auth_info = {"username": "test", "password": "a sturdy test passw0rd"}
         user = User.objects.create_user(**auth_info)
         Account.objects.create(user=user, site_id=2)
         self.client.post(self.login_url, auth_info)
@@ -160,7 +164,7 @@ class LoginViewTest(AccountsTestCase):
         self.assertFalse(get_user(self.client).is_authenticated)
 
     def test_login_login_for_non_default_site(self):
-        auth_info = {"username": "test", "password": "p@ssw0rd"}
+        auth_info = {"username": "test", "password": "a sturdy test passw0rd"}
         user = User.objects.create_user(**auth_info)
         Account.objects.create(user=user, site_id=2)
         with TempSiteID(2):
@@ -171,7 +175,9 @@ class LoginViewTest(AccountsTestCase):
 
     def test_site_check_compares_ids_by_value(self):
         # the original `is not` comparison rejected equal site ids > 256
-        user = User.objects.create_user(username="test", password="p@ssw0rd")
+        user = User.objects.create_user(
+            username="test", password="a sturdy test passw0rd"
+        )
         Account.objects.create(user=user, site_id=1000)
         request = HttpRequest()
         request.site = Site.objects.get(id=1)  # site with tenant config

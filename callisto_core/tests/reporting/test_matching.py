@@ -47,7 +47,7 @@ class MatchIntegratedTest(MatchSetup, ReportPostHelper):
     fixtures = ["wizard_builder_data", "callisto_core_notification_data"]
 
     def _setup_matches(self):
-        self.passphrase = "user 1 secret"
+        self.passphrase = "user 1 secret matching passphrase"
         self.client.login(username="test1", password="test")
         self.client_post_report_creation()
         # we pass in the default arg to client_post_matching_enter
@@ -55,7 +55,7 @@ class MatchIntegratedTest(MatchSetup, ReportPostHelper):
         # is being input twice
         self.client_post_matching_enter("https://www.facebook.com/callistoorg")
 
-        self.passphrase = "user 2 secret"
+        self.passphrase = "user 2 secret matching passphrase"
         self.client.login(username="tset22", password="test")
         self.client_post_report_creation()
         self.client_post_matching_enter("https://www.facebook.com/callistoorg")
@@ -178,7 +178,7 @@ class MatchNotificationTest(MatchSetup, ReportPostHelper):
         user creates a report with their own contact email and enters it into
         matching; returns the (subject, recipients) of each email sent
         """
-        self.passphrase = f"{user.username} secret"
+        self.passphrase = f"{user.username} secret matching passphrase"
         self.client.force_login(user)
         self.client_post_report_creation()
         self.report.contact_email = self.contact(user)

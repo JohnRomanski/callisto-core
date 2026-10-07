@@ -91,6 +91,23 @@ demo `SECRET_KEY` (`callisto.E001`) and a malformed `PEPPER`
 (`callisto.E003`). (`callisto.E002` checked `INDEXING_KEY`, which is no longer
 used.)
 
+### Password and passphrase strength
+
+`PASSWORD_MINIMUM_ENTROPY` (bits, default `35` in the demo settings) rejects
+record passphrases and account passwords that zxcvbn estimates are easier to
+guess. `0` or `None` turns it off. Record passphrases are always checked;
+account passwords are checked through Django's password validation, so add
+the validator:
+
+```python
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "callisto_core.accounts.validators.MinimumEntropyValidator"},
+]
+```
+
+`manage.py check` warns (`callisto.W001`) when the setting is on but the
+validator isn't installed.
+
 ### Rate limiting
 
 Passphrase attempts on reports are limited by `DECRYPT_THROTTLE_RATE`
@@ -190,6 +207,10 @@ For changing the matching implementation
 ### TenantApi
 
 For producing different attributes based on the tenants
+
+`get_current_domain()` gives the domain used in links in emails. The default
+returns the `SITE_ID` site's domain; multi-tenant hosts that resolve the site
+per request (no `SITE_ID`) must override it.
 
 ## Data
 

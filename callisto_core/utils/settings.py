@@ -81,7 +81,10 @@ ARGON2ID_TIME_COST = 2
 ARGON2ID_PARALLELISM = 1
 PEPPER = os.urandom(32)
 DECRYPT_THROTTLE_RATE = "100/m"
-PASSWORD_MINIMUM_ENTROPY = 35
+PASSWORD_MINIMUM_ENTROPY = 35  # bits, zxcvbn estimate; 0 turns the check off
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "callisto_core.accounts.validators.MinimumEntropyValidator"}
+]
 
 TEMPLATES = [
     {
