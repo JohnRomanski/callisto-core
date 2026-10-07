@@ -24,8 +24,10 @@ Django's sites framework (`CurrentSiteMiddleware` sets `request.site`).
 ## Implementing it
 
 The default `CallistoCoreTenantApi` returns fixed demo values. A host replaces
-it (`CALLISTO_TENANT_API`) to read settings from its own store, and overrides
-`get_current_domain()` (the default returns `1`, which makes broken links).
+it (`CALLISTO_TENANT_API`) to read settings from its own store.
+`get_current_domain()` (the domain in email links) defaults to the `SITE_ID`
+site's domain; hosts that resolve the site per request, without `SITE_ID`,
+must override it (the default then logs an error and returns `""`).
 
 ## Known gaps
 

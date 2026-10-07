@@ -6,8 +6,11 @@ passphrase_storage, view_partials), `wizard_builder/` (questions and wizard).
 
 ## Lifecycle
 
-1. **Create**: the user picks a passphrase (entered twice). A random salt is
-   generated and the key is derived with the configured key hasher.
+1. **Create**: the user picks a passphrase (entered twice). Passphrases
+   estimated below `PASSWORD_MINIMUM_ENTROPY` bits are rejected, since the
+   passphrase is all that protects the answers if the database leaks. A
+   random salt is generated and the key is derived with the configured key
+   hasher.
 2. **Answer**: the wizard walks the site's question pages in section order
    (When, Where, What, Who). Each save serializes all answers to JSON and
    re-encrypts the whole record.

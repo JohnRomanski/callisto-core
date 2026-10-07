@@ -16,6 +16,10 @@ validators), `notification/api.py` (account emails).
 ### Signup
 - Form: username, password (length `PASSWORD_MIN_LENGTH`–`PASSWORD_MAX_LENGTH`),
   confirmation, optional email ("only used to reset your password"), terms.
+- Passwords estimated (zxcvbn) below `PASSWORD_MINIMUM_ENTROPY` bits are
+  rejected on signup, reset and change, through `MinimumEntropyValidator` in
+  `AUTH_PASSWORD_VALIDATORS` (`manage.py check` warns, `callisto.W001`, if
+  the setting is on and the validator isn't installed).
 - Creates the `Account` on the current site and logs the user in.
 - Disabled per school with the tenant setting `DISABLE_SIGNUP`; signup then
   redirects to login, and the login label becomes "Email Address" (bulk
@@ -48,7 +52,6 @@ validators), `notification/api.py` (account emails).
 
 ## Known gaps
 
-- `PASSWORD_MINIMUM_ENTROPY` is defined in settings but nothing enforces it.
 - No second factor; no passkeys.
 - `Account.invalid` excludes an account from the user review email
   (`notification/management/commands/user_review_email.py`) but nothing in the

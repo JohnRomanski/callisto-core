@@ -33,8 +33,9 @@ reviewed for privacy first.
   sees what, what matching means, what happens after a match.
 - **"What happens next" status** on the dashboard: saved, in matching, match
   found, reported (with date), and what the school will do.
-- **Passphrase guidance**: strength feedback while choosing, and a clear,
-  repeated warning that it can't be recovered.
+- **Passphrase guidance**: live strength feedback while choosing (weak
+  passphrases are now rejected on submit, which is friction without it), and
+  a clear, repeated warning that it can't be recovered.
 - **Resources by school**: counseling, advocacy, medical and legal contacts,
   configurable per site.
 
@@ -93,11 +94,8 @@ reviewed for privacy first.
 
 - Fix or remove `manage.py decrypt_eval_data`, `Report.encrypted_eval` and
   `CALLISTO_EVAL_*` (see [features/evaluation.md](features/evaluation.md)).
-- Enforce or remove `PASSWORD_MINIMUM_ENTROPY`.
 - Rename the `passphrase` environment variable that sets `SECRET_KEY` in the
   demo settings, and `DEVELOPEMENT.md`'s spelling.
-- Make `TenantApi.get_current_domain()` default to the current site's domain
-  instead of `1`.
 - Scope `user_review_email` by site instead of hard-coding site 1.
 - Move the demo site (`views.py`, `utils/urls.py`) into an example project.
 - Type hints and a type checker on the security-critical modules

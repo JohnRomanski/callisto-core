@@ -55,6 +55,8 @@ environment.
 
 - Passphrase key stretching: Argon2id (OWASP minimum parameters), per-record
   salt; parameters stored per record.
+- Minimum passphrase and password strength (`PASSWORD_MINIMUM_ENTROPY`,
+  zxcvbn estimate).
 - Passphrase attempt rate limit per user (needs a shared cache).
 - Split-key passphrase storage, HttpOnly SameSite=Strict cookie, TTL, cleared
   on logout.
