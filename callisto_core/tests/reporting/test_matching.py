@@ -104,9 +104,6 @@ class MatchAlertingTest(MatchSetup):
 
 
 class ConcurrentMatchingTest(TransactionTestCase):
-    # keep the sites and other migration data for the tests that run after
-    serialized_rollback = True
-
     def setUp(self):
         if connection.vendor != "postgresql":
             self.skipTest("needs row-level locks (select_for_update)")
