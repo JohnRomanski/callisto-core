@@ -91,12 +91,12 @@ class ElementHelper(wizard_builder_tests.ElementHelper, AuthMixin):
 
     def enter_username(self):
         self.browser.find_element(By.CSS_SELECTOR, '[name="username"]').send_keys(
-            self.password
+            self.username
         )
 
     def enter_password(self):
         self.browser.find_element(By.CSS_SELECTOR, '[name="password"]').send_keys(
-            self.username
+            self.password
         )
 
 
@@ -144,7 +144,6 @@ class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase
         )
 
     def setup_user(self):
-        User.objects.create_user(username=self.username, password=self.password)
         self.browser.get(self.live_server_url)
         self.element.enter_username()
         self.browser.find_element(By.CSS_SELECTOR, '[name="password1"]').send_keys(
@@ -155,6 +154,8 @@ class EncryptedFrontendTest(AuthMixin, AssertionsMixin, StaticLiveServerTestCase
         )
         self.browser.find_element(By.CSS_SELECTOR, '[name="terms"]').click()
         self.element.submit()
+        user = User.objects.get(username=self.username)
+        self.assertTrue(user.check_password(self.password))
 
     def setup_report(self):
         self.browser.get(self.live_server_url + reverse("report_new"))
@@ -403,6 +404,15 @@ class WizardFrontendCases(EncryptedFrontendTest):
 
 class CallistoCoreCases(EncryptedFrontendTest):
     def test_dashboard_title(self):
+        self.browser.get(self.live_server_url + reverse("dashboard"))
+        self.assertSelectorContains("h2", "My Records")
+
+    def test_can_log_in_with_signup_credentials(self):
+        self.browser.delete_all_cookies()
+        self.browser.get(self.live_server_url + reverse("login"))
+        self.element.enter_username()
+        self.element.enter_password()
+        self.element.submit()
         self.browser.get(self.live_server_url + reverse("dashboard"))
         self.assertSelectorContains("h2", "My Records")
 
