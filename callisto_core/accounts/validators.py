@@ -1,10 +1,50 @@
 import logging
+import math
+
+from zxcvbn import zxcvbn
 
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 
 logger = logging.getLogger(__name__)
+
+# zxcvbn's cost grows with length; longer input doesn't change the verdict
+_ENTROPY_INPUT_LIMIT = 100
+
+
+def entropy_bits(password: str) -> float:
+    """zxcvbn's estimate of the guesses needed, in bits"""
+    return zxcvbn(password[:_ENTROPY_INPUT_LIMIT])["guesses_log10"] * math.log2(10)
+
+
+def validate_entropy(password: str, label: str = "password"):
+    """
+    Rejects password if it is estimated weaker than PASSWORD_MINIMUM_ENTROPY
+    bits. A falsy setting (0 or None) turns the check off.
+    """
+    minimum = getattr(settings, "PASSWORD_MINIMUM_ENTROPY", None)
+    if minimum and entropy_bits(password) < minimum:
+        raise ValidationError(
+            f"This {label} is too easy to guess. Try a longer phrase of "
+            "several unrelated words.",
+            code="password_too_weak",
+        )
+
+
+class MinimumEntropyValidator:
+    """
+    A Django password validator for PASSWORD_MINIMUM_ENTROPY. Add it to
+    AUTH_PASSWORD_VALIDATORS to check account passwords on signup, reset and
+    change.
+    """
+
+    def validate(self, password, user=None):
+        validate_entropy(password)
+
+    def get_help_text(self):
+        return "Your password must not be easy to guess."
 
 
 def validate_school_email(email, school_email_domain):

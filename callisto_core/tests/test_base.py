@@ -167,7 +167,7 @@ class ReportPostHelper:
 
 
 class ReportFlowHelper(TestCase, ReportPostHelper, ReportAssertionHelper):
-    passphrase = "super secret"
+    passphrase = "super secret passphrase for tests"
     school_email = "HUMAN_STUDENT_TOTALLY_NOT_A_WOLF@example.edu"
     fixtures = ["wizard_builder_data", "callisto_core_notification_data"]
 

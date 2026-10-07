@@ -5,6 +5,7 @@ from nacl.exceptions import CryptoError
 from django import forms
 from django.contrib.auth import get_user_model
 
+from callisto_core.accounts.validators import validate_entropy
 from callisto_core.utils.forms import NoRequiredLabelMixin
 
 from . import fields, models
@@ -59,6 +60,13 @@ class ReportCreateForm(ReportBaseForm):
         user = self.view.request.user
         if isinstance(user, User):
             self.instance.owner = user
+
+    def clean_key(self):
+        # the passphrase is all that protects the record if the database
+        # leaks, so it must withstand offline guessing
+        key = self.cleaned_data.get("key")
+        validate_entropy(key, label="passphrase")
+        return key
 
     def clean_key_confirmation(self):
         key = self.data.get("key")
