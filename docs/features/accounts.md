@@ -38,7 +38,7 @@ validators), `notification/api.py` (account emails).
 
 ### Bulk accounts (school-provisioned)
 - An admin pastes a comma-separated list of emails into a `BulkAccount` for a
-  site and runs it. Each email becomes a user (username = email) with a random
+  site and saves it. Each email becomes a user (username = email) with a random
   placeholder password, a verified `Account`, and an activation email.
 - The activation link sets the first password. Link protocol comes from
   `CALLISTO_EMAIL_LINK_PROTOCOL` (default https).

@@ -12,8 +12,8 @@ assault reporting service is itself sensitive. Plaintext today:
 
 | Field | Where | Used for |
 |---|---|---|
-| Username | `User.username` | Login |
-| Email | `User.email` | Password reset |
+| Username | `User.username` | Login; "Reported by" in the user review PDF when there's no email |
+| Email | `User.email` | Password reset; "Reported by" on matched reports in the user review PDF (`PDFUserReviewReport.get_user_identifier`, sent to the coordinator by `manage.py user_review_email`) |
 | School email | `Account.school_email` | Verification; demo-mode copies |
 | Contact name, email, phone, notes, voicemail | `Report.contact_*` | The school's copy of a report; survivor confirmations; match notifications |
 | Activity | `EvalRow` (user, record, action, time) | Usage research (partly dismantled) |
@@ -47,6 +47,10 @@ These remove plaintext without any new cryptography.
   - Submission confirmations are sent while the survivor is present.
 - **Evaluation log**: drop `EvalRow`'s user and record links, or remove the
   app (see [features/evaluation.md](../features/evaluation.md)).
+- **User review PDF**: it names each matched report's owner by email or
+  username. Decide whether the coordinator needs that (the match delivery
+  already carries the survivor's chosen contact details); if not, drop it,
+  and if so, decrypt it for the PDF only.
 
 ## Step 2: encrypt what's left (username, account email)
 

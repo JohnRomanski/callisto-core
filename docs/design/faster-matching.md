@@ -7,9 +7,11 @@ cryptographer's review. Background, threat model and option details are in
 ## Problem
 
 Each new identifier is tried against every stored match report with one
-Argon2id key derivation each (about 20 ms with current parameters). Matching
-already runs in a worker, so survivors don't wait, but the work per
-submission grows linearly:
+Argon2id key derivation each (about 20 ms with current parameters). With a
+Celery broker, matching runs in a worker and survivors don't wait. Without
+one (eager mode) or when publishing to the broker fails,
+`reporting.tasks.dispatch` runs it inline, so the survivor's request waits
+for the whole scan. Either way the work per submission grows linearly:
 
 | Stored match reports | Work per submission (one core) |
 |---|---|
@@ -90,8 +92,10 @@ client-side cryptography.
 ## Recommended path
 
 1. Build the benchmark; decide target scale and whether matching is per site.
-2. Parallelize the current design across workers. That's enough for tens of
-   thousands of reports.
+2. Run a broker and workers (so matching never runs inline in a request),
+   then parallelize the current design across them. That's enough for tens
+   of thousands of reports. The inline fallback stays O(n) in the request, so
+   alert on broker publish failures.
 3. Commission the cryptographic review of C (preferred) and D in parallel,
    with the numbers from step 1.
 4. Build the chosen option behind `CALLISTO_MATCHING_API`, which already lets

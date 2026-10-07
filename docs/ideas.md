@@ -25,8 +25,9 @@ reviewed for privacy first.
 - **Free-text "anything else"** on every page.
 - **Evidence checklist** (screenshots, messages, medical visit) with guidance
   on preserving it, without uploading anything.
-- **Download my record** in plain formats (PDF, text) at any time, not just
-  at reporting.
+- **Export in other formats**: records can already be viewed and downloaded
+  as PDF at any time; add plain text or a structured format (JSON) the
+  survivor can keep or give to an advocate.
 
 ### Understanding choices
 - **Plain-language explainers** at each decision: what reporting does, who

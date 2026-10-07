@@ -49,9 +49,13 @@ So the user doesn't retype the passphrase on every page:
 
 - Only the owner can open a record (`PermissionDenied` otherwise).
 - Without a stored passphrase, the page asks for it first.
-- Passphrase attempts are rate limited per user (`DECRYPT_THROTTLE_RATE`,
-  default 100/minute, via django-ratelimit; blocks once exceeded, even for the
-  right passphrase). Needs a shared cache to hold across processes.
+- Requests to protected record pages are rate limited per user
+  (`DECRYPT_THROTTLE_RATE`, default 100/minute, via django-ratelimit on
+  `_ReportAccessPartial.dispatch`). It counts **every** request to those
+  pages, not just failed passphrase attempts: page loads with a stored or
+  correct passphrase count too, and once the limit is hit the user is blocked
+  (403) until the window passes, even with the right passphrase. Needs a
+  shared cache to hold across processes.
 
 ## Known gaps
 
