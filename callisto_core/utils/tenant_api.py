@@ -1,4 +1,9 @@
+import logging
 from copy import copy
+
+from django.core.exceptions import ImproperlyConfigured
+
+logger = logging.getLogger(__name__)
 
 
 def strtobool(value: str) -> bool:
@@ -24,7 +29,17 @@ def cast_string_to_type(value: str, cast: type[str | bool | int]) -> str | bool 
 
 class CallistoCoreTenantApi:
     def get_current_domain(self):
-        return 1
+        """
+        The domain used in links in emails: the SITE_ID site's domain.
+        Multi-tenant hosts without SITE_ID must override this.
+        """
+        from django.contrib.sites.models import Site
+
+        try:
+            return Site.objects.get_current().domain
+        except ImproperlyConfigured:
+            logger.error("no SITE_ID: override TenantApi.get_current_domain")
+            return ""
 
     @staticmethod
     def site_settings(var, cast=str, request=None, site_id=1):
