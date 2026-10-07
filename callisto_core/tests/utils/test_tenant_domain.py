@@ -6,6 +6,12 @@ from callisto_core.utils.tenant_api import CallistoCoreTenantApi
 
 
 class CurrentDomainTest(TestCase):
+    def setUp(self):
+        # get_current() caches per process; TestCase rolls back the row but
+        # not the cache, so don't leave a domain behind for later tests
+        Site.objects.clear_cache()
+        self.addCleanup(Site.objects.clear_cache)
+
     def test_is_the_current_sites_domain(self):
         Site.objects.filter(id=1).update(domain="reports.example.edu")
         Site.objects.clear_cache()

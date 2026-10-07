@@ -10,13 +10,16 @@ from django.utils.safestring import mark_safe
 
 logger = logging.getLogger(__name__)
 
-# zxcvbn's cost grows with length; longer input doesn't change the verdict
+# zxcvbn's cost grows with length, so only the start is analyzed. zxcvbn
+# raises above its own max_length (72 by default), so pass the limit too.
 _ENTROPY_INPUT_LIMIT = 100
 
 
 def entropy_bits(password: str) -> float:
     """zxcvbn's estimate of the guesses needed, in bits"""
-    return zxcvbn(password[:_ENTROPY_INPUT_LIMIT])["guesses_log10"] * math.log2(10)
+    password = password[:_ENTROPY_INPUT_LIMIT]
+    guesses_log10 = zxcvbn(password, max_length=_ENTROPY_INPUT_LIMIT)["guesses_log10"]
+    return guesses_log10 * math.log2(10)
 
 
 def validate_entropy(password: str, label: str = "password"):
